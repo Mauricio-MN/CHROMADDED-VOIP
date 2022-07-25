@@ -9,7 +9,7 @@ package pasaud.voip.protocol.clienttoserver;
  * @author wghat
  */
 public enum GroupInfo {
-    CLIENTTOKEN(8), PARTICIPATE(1), GROUPID(4);
+    CLIENTTOKEN(8), PARTICIPATE(1);
 
     private final int size;
     GroupInfo(int i) {

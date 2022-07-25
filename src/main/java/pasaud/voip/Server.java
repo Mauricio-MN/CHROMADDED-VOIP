@@ -32,13 +32,13 @@ class Server{
       @Override
       public void run() {
           try {
-              byte[] buffer = new byte[]{0, 1, 02, 03}; // code not shown
+              byte[] buffer = new byte[256]; // code not shown
               DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
               socket.receive(packet);
 
               InetAddress clientAddress = packet.getAddress();
               int clientPort = packet.getPort();
-              new Thread(new ClientBufferParser(buffer, buffer.length, clientAddress, clientPort)).start();
+              new Thread(new ClientBufferParser(packet)).start();
 
               socket.send(packet);
               if(!socket.isClosed()) run();
