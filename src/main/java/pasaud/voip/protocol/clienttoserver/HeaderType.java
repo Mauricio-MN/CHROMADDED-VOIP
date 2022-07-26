@@ -1,13 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Enum.java to edit this template
- */
+
 package pasaud.voip.protocol.clienttoserver;
 
-/**
- *
- * @author wghat
- */
 public enum HeaderType {
     HANDCHACKE(0), MAPINFO(1), AUDIOINFO(2), GROUPINFO(3), DISCONNECT(4);
 

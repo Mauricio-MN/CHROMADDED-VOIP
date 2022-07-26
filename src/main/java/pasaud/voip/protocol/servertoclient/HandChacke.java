@@ -1,7 +1,7 @@
 
-package pasaud.voip.protocol.clienttoserver;
+package pasaud.voip.protocol.servertoclient;
 
-public enum HandChacke{
+public enum HandChacke {
     CLIENTTOKEN(8), CLIENTNAME(20), PERSONALNUMBER(8);
 
     private final int size;

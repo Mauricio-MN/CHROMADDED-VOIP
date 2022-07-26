@@ -23,11 +23,13 @@ public class Player implements PlayerContract {
 
     private String name;
 
+    private boolean groupParticipate;
     private int groupId;
 
     private PlayerState connectionState;
 
     private ConcurrentLinkedQueue<PlayerPacketAudio> receivedAudio = new ConcurrentLinkedQueue<>();
+    private ConcurrentLinkedQueue<PlayerPacketAudio> receivedAudioGroup = new ConcurrentLinkedQueue<>();
 
 
     private MapsManager externMapManager;
@@ -44,6 +46,7 @@ public class Player implements PlayerContract {
         this.id = -1;
         this.name = "";
         this.connectionState = PlayerState.EMPTY;
+        this.groupParticipate = false;
         this.groupId = -1;
 
 
@@ -86,7 +89,7 @@ public class Player implements PlayerContract {
 
     @Override
     public synchronized boolean getIsGroupTalk() {
-        return groupId != -1;
+        return groupParticipate;
     }
 
     @Override
@@ -147,6 +150,12 @@ public class Player implements PlayerContract {
     }
 
     @Override
+    public synchronized void setGroupTalking(boolean isTalking) {
+        this.groupParticipate = isTalking;
+    }
+
+
+    @Override
     public synchronized void setGroup(int id) {
         this.groupId = id;
     }
@@ -161,19 +170,19 @@ public class Player implements PlayerContract {
         this.connectionState = state;
     }
 
-    @Override
-    public synchronized void sendToGroup(byte[] audio) {
-        if (this.getIsGroupTalk()) {
-
-        }
+    private void sendToGroup(byte[] audio) {
+        
     }
 
-    @Override
-    public synchronized void sendToGeral(byte[] audio) {
-        PlayerContract[] players = this.externMapManager.getMap(this.map).getChunkByCoords(x, y, z).getPlayers();
-        for (PlayerContract player : players) {
-            PlayerPacketAudio packet = new PlayerPacketAudio(this, audio);
-            player.receiveFromGeral(packet);
+    public synchronized void sendAudio(byte[] audio) {
+        if (this.getIsGroupTalk() == false) {
+            PlayerContract[] players = this.externMapManager.getMap(this.map).getChunkByCoords(x, y, z).getPlayers();
+            for (PlayerContract player : players) {
+                PlayerPacketAudio packet = new PlayerPacketAudio(this, audio);
+                player.receiveFromGeral(packet);
+            }
+        } else {
+            sendToGroup(audio);
         }
     }
 

@@ -30,22 +30,17 @@ public void setName(String name);
 public void setID(int id);
 public void setHashMapNb(long numberMap);
 
+public void setGroupTalking(boolean isTalking);
 public void setGroup(int id);
 
 public PlayerState getState();
 public void setConnectionState(PlayerState state);
 
 /**
-* Add Audio Buffer to Player Queue to send to Group of players;
+* Add Audio Buffer to Player Queue to send to Geral(in map Location) or group;
      * @param audio Buffer
 */
-public void sendToGroup(byte[] audio);
-
-/**
-* Add Audio Buffer to Player Queue to send to Geral(in map Location);
-     * @param audio Buffer
-*/
-public void sendToGeral(byte[] audio);
+public void sendAudio(byte[] audio);
 
 /**
 * Add Audio Buffer to Player from another player of Group;

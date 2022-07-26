@@ -3,12 +3,12 @@ package pasaud.voip.player;
 
 import java.net.InetAddress;
 
-class HashInfo {
+public class HashInfo {
 
     private final String AddressPort;
     private final Long token;
 
-    HashInfo(InetAddress address, int port, long token) {
+    public HashInfo(InetAddress address, int port, long token) {
         this.AddressPort = address.getHostName() + port;
         this.token = token;
     }

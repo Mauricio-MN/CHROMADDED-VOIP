@@ -42,9 +42,9 @@ class Server{
 
               InetAddress clientAddress = packet.getAddress();
               int clientPort = packet.getPort();
-              new Thread(new ClientBufferParser(packet)).start();
 
-              socket.send(packet);
+              new Thread(new ClientBufferParser(socket, packet, playersManager)).start();
+
               if(!socket.isClosed()) run();
           } catch (IOException e) {
               Thread t = Thread.currentThread();

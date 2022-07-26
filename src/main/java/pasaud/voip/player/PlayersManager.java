@@ -58,6 +58,13 @@ public class PlayersManager {
         }
     }
 
+    public synchronized void disconnect(HashInfo hashInfo) {
+        String hash = hashInfo.getHash();
+        if (players.containsKey(hash)) {
+            players.remove(hash);
+        }
+    }
+
     /**
      *
      * @param hashInfo Base Class HashInfo to compute Token + Address to HashString;
