@@ -1,5 +1,5 @@
 
-package pasaud.voip.protocol.clienttoserver;
+package pasaud.voip.protocol.udp.clienttoserver;
 
 public enum MapInfo {
     CLIENTTOKEN(8), MAPID(4), MAPX(4), MAPY(4), MAPZ(4);

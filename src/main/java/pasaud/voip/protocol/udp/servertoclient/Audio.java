@@ -1,5 +1,5 @@
 
-package pasaud.voip.protocol.servertoclient;
+package pasaud.voip.protocol.udp.servertoclient;
 
 public enum Audio {
     PUBLICID(4), AUDIO(252);

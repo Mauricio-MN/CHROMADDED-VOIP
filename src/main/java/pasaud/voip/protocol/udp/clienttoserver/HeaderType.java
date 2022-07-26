@@ -1,5 +1,5 @@
 
-package pasaud.voip.protocol.clienttoserver;
+package pasaud.voip.protocol.udp.clienttoserver;
 
 public enum HeaderType {
     HANDCHACKE(0), MAPINFO(1), AUDIOINFO(2), GROUPINFO(3), DISCONNECT(4);

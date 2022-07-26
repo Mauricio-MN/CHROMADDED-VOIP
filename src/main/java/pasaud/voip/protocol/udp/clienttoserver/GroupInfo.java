@@ -1,5 +1,5 @@
 
-package pasaud.voip.protocol.clienttoserver;
+package pasaud.voip.protocol.udp.clienttoserver;
 
 public enum GroupInfo {
     CLIENTTOKEN(8), PARTICIPATE(1);
