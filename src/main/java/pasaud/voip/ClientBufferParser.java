@@ -48,8 +48,16 @@ public class ClientBufferParser implements Runnable {
             case MAPINFO:
                 Stream.of(MapInfo.values()).forEach(c -> BufferCuts.add(c.getSize()));
                 btoken = Arrays.copyOfRange(buffer, 0, BufferCuts.peek() - 1);
+                byte[] bmapId = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
+                byte[] bmapx = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
+                byte[] bmapy = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
+                byte[] bmapz = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
 
                 token = new BigInteger(btoken).longValue();
+                int map = new BigInteger(bmapId).intValue();
+                int x = new BigInteger(bmapx).intValue();
+                int y = new BigInteger(bmapy).intValue();
+                int z = new BigInteger(bmapz).intValue();
                 break;
             case AUDIOINFO:
                 Stream.of(AudioInfo.values()).forEach(c -> BufferCuts.add(c.getSize()));

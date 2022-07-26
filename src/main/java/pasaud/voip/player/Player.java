@@ -6,44 +6,44 @@ import java.util.Queue;
 import pasaud.voip.Maps.Map;
 import pasaud.voip.Maps.MapsManager;
 
-public class Player implements PlayerContract{
+public class Player implements PlayerContract {
 
-private int x;
+    private int x;
 
-private int y;
+    private int y;
 
-private int z;
+    private int z;
 
-private int map;
+    private int map;
 
-private long numberMapHash;
+    private long numberMapHash;
 
-private int id;
+    private int id;
 
-private String name;
+    private String name;
 
-private int groupId;
+    private int groupId;
 
-private PlayerState connectionState;
+    private PlayerState connectionState;
 
-private Queue<byte[]> buffer = new LinkedList<>();
+    private Queue<PlayerPacketAudio> receivedAudio = new LinkedList<>();
 
 
-private MapsManager externMapManager;
+    private MapsManager externMapManager;
 
-Player(MapsManager externMapManager){
+    Player(MapsManager externMapManager) {
 
-this.externMapManager = externMapManager;
+        this.externMapManager = externMapManager;
 
-this.x = -1;
-this.y = -1;
-this.z = -1;
-this.map = -1;
-this.numberMapHash = -1;
-this.id = -1;
-this.name = "";
-this.connectionState = PlayerState.EMPTY;
-this.groupId = -1;
+        this.x = -1;
+        this.y = -1;
+        this.z = -1;
+        this.map = -1;
+        this.numberMapHash = -1;
+        this.id = -1;
+        this.name = "";
+        this.connectionState = PlayerState.EMPTY;
+        this.groupId = -1;
 
 
 }
@@ -86,19 +86,6 @@ this.groupId = -1;
     @Override
     public boolean getIsGroupTalk() {
         return groupId != -1;
-    }
-
-    @Override
-    public byte[] getBuffer() {
-        return buffer.poll();
-    }
-
-    @Override
-    public void addBuffer(byte[] buffer) {
-
-        byte[] copyBuffer = Arrays.copyOf(buffer, buffer.length);
-
-        this.buffer.add(copyBuffer);
     }
 
     @Override
@@ -174,23 +161,34 @@ this.groupId = -1;
     }
 
     @Override
-    public void sendToGroup() {
+    public void sendToGroup(byte[] audio) {
+        if (this.getIsGroupTalk()) {
+
+        }
+    }
+
+    @Override
+    public void sendToGeral(byte[] audio) {
+        PlayerContract[] players = this.externMapManager.getMap(this.map).getChunkByCoords(x, y, z).getPlayers();
+        for (PlayerContract player : players) {
+            PlayerPacketAudio packet = new PlayerPacketAudio(this, audio);
+            player.receiveFromGeral(packet);
+        }
+    }
+
+    @Override
+    public void receiveFromGroup(PlayerPacketAudio packet) {
 
     }
 
     @Override
-    public void sendToGeral() {
-
+    public void receiveFromGeral(PlayerPacketAudio packet) {
+        receivedAudio.add(packet);
     }
 
     @Override
-    public void receiveFromGroup() {
-
-    }
-
-    @Override
-    public void receiveFromGeral() {
-
+    public PlayerPacketAudio udpBufferQueueClean(){
+        return receivedAudio.poll();
     }
 
 }

@@ -21,10 +21,6 @@ public long getHashMapNb();
 
 public boolean getIsGroupTalk();
 
-public byte[] getBuffer();
-
-public void addBuffer(byte[] buffer);
-
 public void setMap(int map);
 public void setXcoord(int x);
 public void setYcoord(int y);
@@ -39,13 +35,32 @@ public void setGroup(int id);
 public PlayerState getState();
 public void setConnectionState(PlayerState state);
 
+/**
+* Add Audio Buffer to Player Queue to send to Group of players;
+     * @param audio Buffer
+*/
+public void sendToGroup(byte[] audio);
 
-public void sendToGroup();
+/**
+* Add Audio Buffer to Player Queue to send to Geral(in map Location);
+     * @param audio Buffer
+*/
+public void sendToGeral(byte[] audio);
 
-public void sendToGeral();
+/**
+* Add Audio Buffer to Player from another player of Group;
+     * @param packet PlayerPacketAudio class, packet Player info + audio Buffer
+*/
+public void receiveFromGroup(PlayerPacketAudio packet);
 
-public void receiveFromGroup();
+/**
+* Add Audio Buffer to Player from another player of Geral(from Map location);
+     * @param packet
+*/
+public void receiveFromGeral(PlayerPacketAudio packet);
 
-public void receiveFromGeral();
-
+/**
+* get Packet audio buffer from player;
+*/
+ public PlayerPacketAudio udpBufferQueueClean();
 }

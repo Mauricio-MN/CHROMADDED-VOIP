@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 class Server{
     private final DatagramSocket serverSocket;
 
-    public Server(int port, int poolSize) throws IOException {
+    public Server(int port) throws IOException {
       serverSocket = new DatagramSocket(port);
       new Thread(new Handler(serverSocket)).start();
     }
