@@ -40,6 +40,8 @@ class Server{
               DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
               socket.receive(packet);
 
+              System.out.println("Received UDP packet.");
+
               InetAddress clientAddress = packet.getAddress();
               int clientPort = packet.getPort();
 

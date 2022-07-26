@@ -11,6 +11,8 @@ public class Main {
     public static void main(String args[]) {
 
         try {
+            System.out.println("Chromadded Valuable On Inside Projects, ;D");
+            System.out.println("Chromadded VOIP?");
             System.out.println("Initializing Maps Manager");
             MapsManager mapsManager = new MapsManager(16, 256, 16);
             System.out.println("Initalized! ");
