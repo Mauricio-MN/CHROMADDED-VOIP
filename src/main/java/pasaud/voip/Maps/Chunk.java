@@ -12,22 +12,22 @@ public class Chunk {
         players = new LinkedList<>();
     }
 
-    public PlayerContract[] getPlayers() {
+    public synchronized PlayerContract[] getPlayers() {
         PlayerContract[] playersArray = (PlayerContract[]) players.toArray();
         return playersArray;
     }
 
-    public void addPlayer(PlayerContract player) {
+    public synchronized void addPlayer(PlayerContract player) {
         if (players.indexOf(player) == -1) {
             players.add(player);
         }
     }
 
-    public void removePlayer(PlayerContract player) {
+    public synchronized void removePlayer(PlayerContract player) {
         players.removeFirstOccurrence(player);
     }
 
-    public boolean havePlayer(PlayerContract player) {
+    public synchronized boolean havePlayer(PlayerContract player) {
         if (players.indexOf(player) == -1) {
             return false;
         }

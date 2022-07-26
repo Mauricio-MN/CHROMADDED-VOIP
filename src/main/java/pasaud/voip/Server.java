@@ -10,23 +10,27 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import pasaud.voip.Maps.MapsManager;
+import pasaud.voip.player.PlayersManager;
 
 
 class Server{
     private final DatagramSocket serverSocket;
 
-    public Server(int port) throws IOException {
+    public Server(int port, PlayersManager playersManager) throws IOException {
       serverSocket = new DatagramSocket(port);
-      new Thread(new Handler(serverSocket)).start();
+      new Thread(new Handler(serverSocket, playersManager)).start();
     }
 
 }
 
   class Handler implements Runnable {
-    private final DatagramSocket socket;
+      private final DatagramSocket socket;
+      private PlayersManager playersManager;
 
-      Handler(DatagramSocket socket) {
+      Handler(DatagramSocket socket, PlayersManager playersManager) {
           this.socket = socket;
+          this.playersManager = playersManager;
       }
 
       @Override

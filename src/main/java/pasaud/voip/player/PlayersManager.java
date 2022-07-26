@@ -2,18 +2,18 @@
 package pasaud.voip.player;
 
 import java.net.InetAddress;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import pasaud.voip.Maps.MapsManager;
 
 public class PlayersManager {
 
-    private HashMap<String, Player> players;
-    private HashMap<String, Player> preConnectedPlayers;
+    private ConcurrentHashMap<String, Player> players;
+    private ConcurrentHashMap<String, Player> preConnectedPlayers;
 
     private MapsManager mapsManager;
 
     public PlayersManager(MapsManager mapsManager) {
-        this.players = new HashMap();
+        this.players = new ConcurrentHashMap();
         this.mapsManager = mapsManager;
     }
 
@@ -22,7 +22,7 @@ public class PlayersManager {
      * @param token Token access of player
      * @param id ID access of player
      */
-    public void addPreConnect(long token, int id){
+    public synchronized void addPreConnect(long token, int id){
         Player player = new Player(mapsManager);
         player.setConnectionState(PlayerState.WAITING);
         player.setHashMapNb(token);
@@ -40,7 +40,7 @@ public class PlayersManager {
      * @param token Token access of player
      * @param id ID access of player
      */
-    public void addConnect(InetAddress address, int port, String Name, long token, int id) {
+    public synchronized void addConnect(InetAddress address, int port, String Name, long token, int id) {
         String infoPreConnectedHash = "" + token + "@" + id;
         if (preConnectedPlayers.containsKey(infoPreConnectedHash)) {
 
@@ -66,7 +66,7 @@ public class PlayersManager {
      * @param y Coord Y;
      * @param z Coord Z;
      */
-    public void setPosition(HashInfo hashInfo, int map, int x, int y, int z) {
+    public synchronized void setPosition(HashInfo hashInfo, int map, int x, int y, int z) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
             Player player = players.get(hash);
@@ -82,7 +82,7 @@ public class PlayersManager {
      * @param hashInfo Base Class HashInfo to compute Token + Address to HashString;
      * @param groupId Id of Group to talk;
      */
-    public void setGroup(HashInfo hashInfo, int groupId) {
+    public synchronized void setGroup(HashInfo hashInfo, int groupId) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
             Player player = players.get(hash);
@@ -90,7 +90,7 @@ public class PlayersManager {
         }
     }
 
-    public PlayerContract getPlayer(HashInfo hashInfo) {
+    public synchronized PlayerContract getPlayer(HashInfo hashInfo) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
             Player player = players.get(hash);

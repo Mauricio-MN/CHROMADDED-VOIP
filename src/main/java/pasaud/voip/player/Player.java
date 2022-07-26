@@ -3,6 +3,7 @@ package pasaud.voip.player;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import pasaud.voip.Maps.Map;
 import pasaud.voip.Maps.MapsManager;
 
@@ -26,7 +27,7 @@ public class Player implements PlayerContract {
 
     private PlayerState connectionState;
 
-    private Queue<PlayerPacketAudio> receivedAudio = new LinkedList<>();
+    private ConcurrentLinkedQueue<PlayerPacketAudio> receivedAudio = new ConcurrentLinkedQueue<>();
 
 
     private MapsManager externMapManager;
@@ -49,47 +50,47 @@ public class Player implements PlayerContract {
 }
 
     @Override
-    public int getMap() {
+    public synchronized int getMap() {
         return map;
     }
 
     @Override
-    public int getXcoord() {
+    public synchronized int getXcoord() {
         return x;
     }
 
     @Override
-    public int getYcoord() {
+    public synchronized int getYcoord() {
         return y;
     }
 
     @Override
-    public int getZcoord() {
+    public synchronized int getZcoord() {
         return z;
     }
 
     @Override
-    public String getName() {
+    public synchronized String getName() {
         return name;
     }
 
     @Override
-    public int getID() {
+    public synchronized int getID() {
         return id;
     }
 
     @Override
-    public long getHashMapNb() {
+    public synchronized long getHashMapNb() {
         return numberMapHash;
     }
 
     @Override
-    public boolean getIsGroupTalk() {
+    public synchronized boolean getIsGroupTalk() {
         return groupId != -1;
     }
 
     @Override
-    public void setMap(int map) {
+    public synchronized void setMap(int map) {
         if (map != this.map) {
             externMapManager.getMap(this.map).getChunkByCoords(x, y, z).removePlayer(this);
             this.map = map;
@@ -98,7 +99,7 @@ public class Player implements PlayerContract {
     }
 
     @Override
-    public void setXcoord(int x) {
+    public synchronized void setXcoord(int x) {
         if (!externMapManager.getMap(this.map).getChunkByCoords(x, this.y, this.z).havePlayer(this)) {
             externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
             this.x = x;
@@ -109,7 +110,7 @@ public class Player implements PlayerContract {
     }
 
     @Override
-    public void setYcoord(int y) {
+    public synchronized void setYcoord(int y) {
         if (!externMapManager.getMap(this.map).getChunkByCoords(this.x, y, this.z).havePlayer(this)) {
             externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
             this.y = y;
@@ -120,7 +121,7 @@ public class Player implements PlayerContract {
     }
 
     @Override
-    public void setZcoord(int z) {
+    public synchronized void setZcoord(int z) {
         if (!externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, z).havePlayer(this)) {
             externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
             this.z = z;
@@ -131,44 +132,44 @@ public class Player implements PlayerContract {
     }
 
     @Override
-    public void setName(String name) {
+    public synchronized void setName(String name) {
         this.name = name;
     }
 
     @Override
-    public void setID(int id) {
+    public synchronized void setID(int id) {
         this.id = id;
     }
 
     @Override
-    public void setHashMapNb(long numberMapHash) {
+    public synchronized void setHashMapNb(long numberMapHash) {
         this.numberMapHash = numberMapHash;
     }
 
     @Override
-    public void setGroup(int id) {
+    public synchronized void setGroup(int id) {
         this.groupId = id;
     }
 
     @Override
-    public PlayerState getState() {
+    public synchronized PlayerState getState() {
         return connectionState;
     }
 
     @Override
-    public void setConnectionState(PlayerState state) {
+    public synchronized void setConnectionState(PlayerState state) {
         this.connectionState = state;
     }
 
     @Override
-    public void sendToGroup(byte[] audio) {
+    public synchronized void sendToGroup(byte[] audio) {
         if (this.getIsGroupTalk()) {
 
         }
     }
 
     @Override
-    public void sendToGeral(byte[] audio) {
+    public synchronized void sendToGeral(byte[] audio) {
         PlayerContract[] players = this.externMapManager.getMap(this.map).getChunkByCoords(x, y, z).getPlayers();
         for (PlayerContract player : players) {
             PlayerPacketAudio packet = new PlayerPacketAudio(this, audio);
@@ -177,17 +178,17 @@ public class Player implements PlayerContract {
     }
 
     @Override
-    public void receiveFromGroup(PlayerPacketAudio packet) {
+    public synchronized void receiveFromGroup(PlayerPacketAudio packet) {
 
     }
 
     @Override
-    public void receiveFromGeral(PlayerPacketAudio packet) {
+    public synchronized void receiveFromGeral(PlayerPacketAudio packet) {
         receivedAudio.add(packet);
     }
 
     @Override
-    public PlayerPacketAudio udpBufferQueueClean(){
+    public synchronized PlayerPacketAudio udpBufferQueueClean(){
         return receivedAudio.poll();
     }
 

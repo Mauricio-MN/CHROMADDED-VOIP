@@ -11,14 +11,14 @@ public class Map {
         this.chunks = new Chunk[ChunksSizeX][ChunksSizeY][ChunksSizeZ];
     }
 
-    public Chunk getChunk(int x, int y, int z) {
+    public synchronized Chunk getChunk(int x, int y, int z) {
         if (chunks[x][y][z] == null) {
             chunks[x][y][z] = new Chunk();
         }
         return chunks[x][y][z];
     }
 
-    public Chunk getChunkByCoords(int xc, int yc, int zc) {
+    public synchronized Chunk getChunkByCoords(int xc, int yc, int zc) {
         int x, y, z = 0;
         x = xc / oneChunkEqualIntCoordinates;
         y = yc / oneChunkEqualIntCoordinates;

@@ -19,7 +19,7 @@ public class MapsManager {
         }
     }
 
-    public Map getMap(int i) {
+    public synchronized Map getMap(int i) {
         return maps[i];
     }
 
