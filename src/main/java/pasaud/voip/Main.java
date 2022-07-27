@@ -20,7 +20,7 @@ public class Main {
             PlayersManager playersManager = new PlayersManager(mapsManager);
             System.out.println("Initalized! ");
             System.out.println("Initializing UDP server");
-            Server uspServer = new Server(443, playersManager);
+            Server uspServer = new Server(443, playersManager, mapsManager, DivisionOfThreads.BYMAPS);
             System.out.println("Initalized! ");
 
             while (true) {

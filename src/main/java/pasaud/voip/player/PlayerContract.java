@@ -9,7 +9,7 @@ package pasaud.voip.player;
  * @author wghat
  */
 public interface PlayerContract {
- 
+
 public int getMap();
 public int getXcoord();
 public int getYcoord();
@@ -20,6 +20,8 @@ public int getID();
 public long getHashMapNb();
 
 public boolean getIsGroupTalk();
+
+public void setKey(byte[] key);
 
 public void setMap(int map);
 public void setXcoord(int x);

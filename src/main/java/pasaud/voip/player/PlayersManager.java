@@ -14,43 +14,45 @@ public class PlayersManager {
 
     public PlayersManager(MapsManager mapsManager) {
         this.players = new ConcurrentHashMap();
+        this.preConnectedPlayers = new ConcurrentHashMap();
         this.mapsManager = mapsManager;
     }
 
     /**
      * Add pré connected Player by GameServer
-     * @param token Token access of player
-     * @param id ID access of player
+     * @param token Token access of player;
+     * @param id ID access of player;
+     * @param name Name of player;
+     * @param key decript key of packet;
      */
-    public synchronized void addPreConnect(long token, int id){
+    public synchronized void addPreConnect(long token, int id, String name, byte[] key){
         Player player = new Player(mapsManager);
         player.setConnectionState(PlayerState.WAITING);
         player.setHashMapNb(token);
-        player.setID(-2);
+        player.setName(name);
+        player.setID(id);
 
-        String infoHash = "" + token + "@" + id;
+        String infoHash = "" + id;
         preConnectedPlayers.put(infoHash, player);
     }
 
     /**
      * 
-     * @param address IP Address from player
-     * @param port UDP opened port from player
-     * @param Name Name of player
-     * @param token Token access of player
-     * @param id ID access of player
+     * @param address IP Address from player;
+     * @param port UDP opened port from player;
+     * @param id ID access of player;
      */
-    public synchronized void addConnect(InetAddress address, int port, String Name, long token, int id) {
-        String infoPreConnectedHash = "" + token + "@" + id;
+    public synchronized void addConnect(InetAddress address, int port, int id) {
+        String infoPreConnectedHash = "" + id;
         if (preConnectedPlayers.containsKey(infoPreConnectedHash)) {
 
-            HashInfo info = new HashInfo(address, port, token);
+            Player playerPreconnected = preConnectedPlayers.get(infoPreConnectedHash);
+
+            HashInfo info = new HashInfo(address, port, playerPreconnected.getHashMapNb());
             if (players.containsKey(info.getHash()) == false) {
                 Player player = new Player(mapsManager);
                 player.setConnectionState(PlayerState.WAITING);
-                player.setHashMapNb(token);
                 player.setID(id);
-                player.setName(Name);
 
                 players.put(info.getHash(), player);
             }

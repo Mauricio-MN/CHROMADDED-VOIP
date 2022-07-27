@@ -23,4 +23,8 @@ public class MapsManager {
         return maps[i];
     }
 
+    public synchronized Map[] getMaps() {
+        return maps;
+    }
+
 }

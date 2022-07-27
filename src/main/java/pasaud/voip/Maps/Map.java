@@ -11,6 +11,10 @@ public class Map {
         this.chunks = new Chunk[ChunksSizeX][ChunksSizeY][ChunksSizeZ];
     }
 
+    public synchronized int getChunksSize() {
+        return chunks.length;
+    }
+
     public synchronized Chunk getChunk(int x, int y, int z) {
         if (chunks[x][y][z] == null) {
             chunks[x][y][z] = new Chunk();

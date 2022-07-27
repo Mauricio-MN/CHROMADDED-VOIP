@@ -1,13 +1,11 @@
 package pasaud.voip.player;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import pasaud.voip.Maps.Map;
 import pasaud.voip.Maps.MapsManager;
 
 public class Player implements PlayerContract {
+
+    private byte[] key;
 
     private int x;
 
@@ -38,6 +36,7 @@ public class Player implements PlayerContract {
 
         this.externMapManager = externMapManager;
 
+        this.key = new byte[16];
         this.x = -1;
         this.y = -1;
         this.z = -1;
@@ -90,6 +89,11 @@ public class Player implements PlayerContract {
     @Override
     public synchronized boolean getIsGroupTalk() {
         return groupParticipate;
+    }
+
+    @Override
+    public void setKey(byte[] key){
+        this.key = key;
     }
 
     @Override

@@ -44,29 +44,36 @@ public class ClientBufferParser implements Runnable {
         long token;
         HashInfo hashInfo;
 
+        int i = 0;
+
         HeaderType headertype = HeaderType.getHeaderType(buffer);
         Queue<Integer> BufferCuts = new LinkedList<>();
         switch (headertype) {
             case HANDCHACKE:
-                Stream.of(HandChacke.values()).forEach(c -> BufferCuts.add(c.getSize()));
-                btoken = Arrays.copyOfRange(buffer, 0, BufferCuts.peek() - 1);
-                byte[] bname = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
-                byte[] bpersonalNumber = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
+                for (HandChacke protocol : HandChacke.values()) {
+                    BufferCuts.add(protocol.getSize() + i);
+                    i += protocol.getSize();
+                }
+                i = 0;
+                System.out.println(buffer.length + " " + (BufferCuts.peek() + 1) + "falta 1");
+                byte[] bpersonalNumber = Arrays.copyOfRange(buffer, 1, BufferCuts.poll());
 
-                token = new BigInteger(btoken).longValue();
-                String name = new String(bname, StandardCharsets.UTF_8);
                 int personalNumber = new BigInteger(bpersonalNumber).intValue();
 
-                playersManager.addConnect(address, port, name, token, personalNumber);
+                playersManager.addConnect(address, port, personalNumber);
 
                 break;
             case MAPINFO:
-                Stream.of(MapInfo.values()).forEach(c -> BufferCuts.add(c.getSize()));
-                btoken = Arrays.copyOfRange(buffer, 0, BufferCuts.peek() - 1);
-                byte[] bmapId = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
-                byte[] bmapx = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
-                byte[] bmapy = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
-                byte[] bmapz = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
+                for (MapInfo protocol : MapInfo.values()) {
+                    BufferCuts.add(protocol.getSize() + i);
+                    i += protocol.getSize();
+                }
+                i = 0;
+                btoken = Arrays.copyOfRange(buffer, 1, BufferCuts.peek());
+                byte[] bmapId = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, BufferCuts.peek());
+                byte[] bmapx = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, BufferCuts.peek());
+                byte[] bmapy = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, BufferCuts.peek());
+                byte[] bmapz = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, BufferCuts.peek());
 
                 token = new BigInteger(btoken).longValue();
                 int map = new BigInteger(bmapId).intValue();
@@ -78,9 +85,13 @@ public class ClientBufferParser implements Runnable {
                 playersManager.setPosition(hashInfo, map, x, y, z);
                 break;
             case AUDIOINFO:
-                Stream.of(AudioInfo.values()).forEach(c -> BufferCuts.add(c.getSize()));
-                btoken = Arrays.copyOfRange(buffer, 0, BufferCuts.peek() - 1);
-                byte[] audio = Arrays.copyOfRange(buffer, BufferCuts.poll(), buffer.length - 1);
+                for (AudioInfo protocol : AudioInfo.values()) {
+                    BufferCuts.add(protocol.getSize() + i);
+                    i += protocol.getSize();
+                }
+                i = 0;
+                btoken = Arrays.copyOfRange(buffer, 1, BufferCuts.peek());
+                byte[] audio = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, buffer.length - 1);
 
                 token = new BigInteger(btoken).longValue();
 
@@ -89,8 +100,8 @@ public class ClientBufferParser implements Runnable {
                 break;
             case GROUPINFO:
                 Stream.of(GroupInfo.values()).forEach(c -> BufferCuts.add(c.getSize()));
-                btoken = Arrays.copyOfRange(buffer, 0, BufferCuts.peek() - 1);
-                byte[] bparticipate = Arrays.copyOfRange(buffer, BufferCuts.poll(), BufferCuts.peek() - 1);
+                btoken = Arrays.copyOfRange(buffer, 1, BufferCuts.peek());
+                byte[] bparticipate = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, BufferCuts.peek());
                 boolean participate = bparticipate[0] == 1;
 
                 token = new BigInteger(btoken).longValue();

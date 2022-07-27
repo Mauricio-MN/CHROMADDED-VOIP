@@ -2,7 +2,7 @@
 package pasaud.voip.protocol.udp.clienttoserver;
 
 public enum HandChacke{
-    CLIENTTOKEN(8), CLIENTNAME(20), PERSONALNUMBER(8);
+    PERSONALNUMBER(4);
 
     private final int size;
     HandChacke(int i) {
