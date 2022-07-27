@@ -96,7 +96,7 @@ public class ClientBufferParser implements Runnable {
                 token = new BigInteger(btoken).longValue();
 
                 hashInfo = new HashInfo(address, port, token);
-                playersManager.getPlayer(hashInfo).sendAudio(audio);
+                playersManager.getPlayer(hashInfo).queueMyPacket(audio);
                 break;
             case GROUPINFO:
                 Stream.of(GroupInfo.values()).forEach(c -> BufferCuts.add(c.getSize()));

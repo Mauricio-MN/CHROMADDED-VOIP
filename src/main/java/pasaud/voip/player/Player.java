@@ -26,8 +26,9 @@ public class Player implements PlayerContract {
 
     private PlayerState connectionState;
 
+    private ConcurrentLinkedQueue<PlayerPacketAudio> myAudio = new ConcurrentLinkedQueue<>();
+
     private ConcurrentLinkedQueue<PlayerPacketAudio> receivedAudio = new ConcurrentLinkedQueue<>();
-    private ConcurrentLinkedQueue<PlayerPacketAudio> receivedAudioGroup = new ConcurrentLinkedQueue<>();
 
 
     private MapsManager externMapManager;
@@ -99,8 +100,12 @@ public class Player implements PlayerContract {
     @Override
     public synchronized void setMap(int map) {
         if (map != this.map) {
-            externMapManager.getMap(this.map).getChunkByCoords(x, y, z).removePlayer(this);
+            if (externMapManager.getMap(this.map) != null) {
+                externMapManager.getMap(this.map).removePlayer(this);
+                externMapManager.getMap(this.map).getChunkByCoords(x, y, z).removePlayer(this);
+            }
             this.map = map;
+            externMapManager.getMap(this.map).addPlayer(this);
             externMapManager.getMap(this.map).getChunkByCoords(x, y, z).addPlayer(this);
         }
     }
@@ -174,20 +179,15 @@ public class Player implements PlayerContract {
         this.connectionState = state;
     }
 
-    private void sendToGroup(byte[] audio) {
-        
+    @Override
+    public synchronized void queueMyPacket(byte[] audio) {
+        PlayerPacketAudio packet = new PlayerPacketAudio(this, audio);
+        myAudio.add(packet);
     }
 
-    public synchronized void sendAudio(byte[] audio) {
-        if (this.getIsGroupTalk() == false) {
-            PlayerContract[] players = this.externMapManager.getMap(this.map).getChunkByCoords(x, y, z).getPlayers();
-            for (PlayerContract player : players) {
-                PlayerPacketAudio packet = new PlayerPacketAudio(this, audio);
-                player.receiveFromGeral(packet);
-            }
-        } else {
-            sendToGroup(audio);
-        }
+    @Override
+    public synchronized PlayerPacketAudio unQueueMyPacket() {
+        return myAudio.poll();
     }
 
     @Override

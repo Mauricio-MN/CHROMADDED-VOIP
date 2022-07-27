@@ -39,10 +39,16 @@ public PlayerState getState();
 public void setConnectionState(PlayerState state);
 
 /**
-* Add Audio Buffer to Player Queue to send to Geral(in map Location) or group;
+* Add Audio Buffer to Player Queue;
      * @param audio Buffer
 */
-public void sendAudio(byte[] audio);
+public void queueMyPacket(byte[] audio);
+
+/**
+* Poll Audio Buffer from Player Queue to send to Geral(in map Location) or group;
+     * @return PlayerPacketAudio, Player info + audio buffer;
+*/
+public PlayerPacketAudio unQueueMyPacket();
 
 /**
 * Add Audio Buffer to Player from another player of Group;

@@ -2,7 +2,7 @@
 package pasaud.voip.protocol.udp.clienttoserver;
 
 public enum AudioInfo {
-    CLIENTTOKEN(8), AUDIO(256);
+    CLIENTTOKEN(8), NUMBER(1), AUDIO(256);
 
     private final int size;
     AudioInfo(int i) {
