@@ -91,9 +91,11 @@ public class ClientBufferParser implements Runnable {
                 }
                 i = 0;
                 btoken = Arrays.copyOfRange(buffer, 1, BufferCuts.peek());
+                byte[] bnumber = Arrays.copyOfRange(buffer, BufferCuts.poll() + 1, BufferCuts.peek());
                 byte[] audio = Arrays.copyOfRange(buffer, BufferCuts.poll()+1, buffer.length - 1);
 
                 token = new BigInteger(btoken).longValue();
+                int number = new BigInteger(bnumber).intValue();
 
                 hashInfo = new HashInfo(address, port, token);
                 playersManager.getPlayer(hashInfo).queueMyPacket(audio);

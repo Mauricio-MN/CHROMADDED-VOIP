@@ -54,18 +54,20 @@ class Server{
       @Override
       public void run() {
           try {
-              byte[] buffer = new byte[256]; // code not shown
-              DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-              socket.receive(packet);
+              while (!socket.isClosed()) {
 
-              System.out.println("Received UDP packet.");
+                  byte[] buffer = new byte[256]; // code not shown
+                  DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                  socket.receive(packet);
 
-              InetAddress clientAddress = packet.getAddress();
-              int clientPort = packet.getPort();
+                  System.out.println("Received UDP packet.");
 
-              new Thread(new ClientBufferParser(socket, packet, playersManager)).start();
+                  InetAddress clientAddress = packet.getAddress();
+                  int clientPort = packet.getPort();
 
-              if(!socket.isClosed()) run();
+                  new Thread(new ClientBufferParser(socket, packet, playersManager)).start();
+
+              }
           } catch (IOException e) {
               Thread t = Thread.currentThread();
               t.getUncaughtExceptionHandler().uncaughtException(t, e);
@@ -91,51 +93,40 @@ class HandlerPlayersThreadsByMaps implements Runnable {
 
     @Override
     public void run() {
-        try {
-            for (PlayerContract player : map.getPlayers()) {
-                PlayerPacketAudio packetToPlayer = player.udpBufferQueueClean();
-                //Construct Buffer Server to Client;
-                PlayerPacketAudio packet = player.unQueueMyPacket();
-                int x = player.getXcoord();
-                int y = player.getYcoord();
-                int z = player.getZcoord();
-                Chunk centerChunk = map.getChunkByCoords(x, y, z);
-                int[] coordsChunk = map.getChunkCoordsByPlayerCoords(x, y, z);
+        while (!socket.isClosed()) {
 
-                for (int rx = -1; rx <= 1; rx++) {
-                    for (int ry = -1; ry <= 1; ry++) {
-                        for (int rz = -1; rz <= 1; rz++) {
-                            Chunk actualChunk = map.getChunk(coordsChunk[0] + rx, coordsChunk[1] + ry, coordsChunk[2] + rz);
-                            for (PlayerContract playerinChunk : actualChunk.getPlayers()) {
-                                int vX = playerinChunk.getXcoord();
-                                int vY = playerinChunk.getYcoord();
-                                int vZ = playerinChunk.getZcoord();
-                                int distance = distanceTo(x, y, z, vX, vY, vZ);
-                                if( distance < 10 && distance > -10) playerinChunk.receiveFromGeral(packet);
+            if (!map.isEmpty()) {
+                for (PlayerContract player : map.getPlayers()) {
+                    PlayerPacketAudio packetToPlayer = player.udpBufferQueueClean();
+                    //Construct Buffer Server to Client;
+                    PlayerPacketAudio packet = player.unQueueMyPacket();
+                    int x = player.getXcoord();
+                    int y = player.getYcoord();
+                    int z = player.getZcoord();
+                    Chunk centerChunk = map.getChunkByCoords(x, y, z);
+                    int[] coordsChunk = map.getChunkCoordsByPlayerCoords(x, y, z);
+
+                    for (int rx = -1; rx <= 1; rx++) {
+                        for (int ry = -1; ry <= 1; ry++) {
+                            for (int rz = -1; rz <= 1; rz++) {
+                                Chunk actualChunk = map.getChunk(coordsChunk[0] + rx, coordsChunk[1] + ry, coordsChunk[2] + rz);
+                                for (PlayerContract playerinChunk : actualChunk.getPlayers()) {
+                                    int vX = playerinChunk.getXcoord();
+                                    int vY = playerinChunk.getYcoord();
+                                    int vZ = playerinChunk.getZcoord();
+                                    int distance = distanceTo(x, y, z, vX, vY, vZ);
+                                    if (distance < 10 && distance > -10) {
+                                        playerinChunk.receiveFromGeral(packet);
+                                    }
+                                }
                             }
                         }
                     }
+
                 }
-
             }
-
-            byte[] buffer = new byte[256]; // code not shown
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
-
-            System.out.println("Received UDP packet.");
-
-            InetAddress clientAddress = packet.getAddress();
-            int clientPort = packet.getPort();
-
-            new Thread(new ClientBufferParser(socket, packet, playersManager)).start();
-
-            if (!socket.isClosed()) {
-                run();
-            }
-        } catch (IOException e) {
-            Thread t = Thread.currentThread();
-            t.getUncaughtExceptionHandler().uncaughtException(t, e);
         }
+
     }
+
 }

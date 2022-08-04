@@ -52,8 +52,15 @@ public class Map {
     }
 
     public synchronized PlayerContract[] getPlayers() {
-        PlayerContract[] playersArray = (PlayerContract[]) players.toArray();
-        return playersArray;
+        if (this.isEmpty()) {
+            PlayerContract[] playersArray = (PlayerContract[]) players.toArray();
+            return playersArray;
+        }
+        return null;
+    }
+
+    public synchronized boolean isEmpty() {
+        return players.isEmpty();
     }
 
     public synchronized void addPlayer(PlayerContract player) {
