@@ -2,14 +2,14 @@
 package pasaud.voip.Maps;
 
 import java.util.LinkedList;
-import pasaud.voip.player.PlayerContract;
+import pasaud.voip.player.Player;
 
 public class Map {
     private Chunk[][][] chunks;
     private int mapNumb;
     private int oneChunkEqualIntCoordinates;
 
-    private LinkedList<PlayerContract> players;
+    private LinkedList<Player> players;
 
     public Map(int oneChunkRepresentsIntCoords, int ChunksSizeX, int ChunksSizeY, int ChunksSizeZ) {
         this.oneChunkEqualIntCoordinates = oneChunkRepresentsIntCoords;
@@ -51,9 +51,9 @@ public class Map {
         return coords;
     }
 
-    public synchronized PlayerContract[] getPlayers() {
+    public synchronized Player[] getPlayers() {
         if (this.isEmpty()) {
-            PlayerContract[] playersArray = (PlayerContract[]) players.toArray();
+            Player[] playersArray = (Player[]) players.toArray();
             return playersArray;
         }
         return null;
@@ -63,17 +63,17 @@ public class Map {
         return players.isEmpty();
     }
 
-    public synchronized void addPlayer(PlayerContract player) {
+    public synchronized void addPlayer(Player player) {
         if (players.indexOf(player) == -1) {
             players.add(player);
         }
     }
 
-    public synchronized void removePlayer(PlayerContract player) {
+    public synchronized void removePlayer(Player player) {
         players.removeFirstOccurrence(player);
     }
 
-    public synchronized boolean havePlayer(PlayerContract player) {
+    public synchronized boolean havePlayer(Player player) {
         if (players.indexOf(player) == -1) {
             return false;
         }

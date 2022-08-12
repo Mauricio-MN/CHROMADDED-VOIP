@@ -98,6 +98,9 @@ public class ClientBufferParser implements Runnable {
                 int number = new BigInteger(bnumber).intValue();
 
                 hashInfo = new HashInfo(address, port, token);
+                if (playersManager.) {
+                    
+                }
                 playersManager.getPlayer(hashInfo).queueMyPacket(audio);
                 break;
             case GROUPINFO:

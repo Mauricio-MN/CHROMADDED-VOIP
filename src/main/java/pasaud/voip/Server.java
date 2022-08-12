@@ -21,9 +21,9 @@ import javax.net.ssl.TrustManagerFactory;
 import pasaud.voip.Maps.Chunk;
 import pasaud.voip.Maps.Map;
 import pasaud.voip.Maps.MapsManager;
-import pasaud.voip.player.PlayerContract;
-import pasaud.voip.player.PlayerPacketAudio;
+import pasaud.voip.player.audio.PlayerPacketAudio;
 import pasaud.voip.player.PlayersManager;
+import pasaud.voip.player.Player;
 
 
 class Server{
@@ -96,8 +96,8 @@ class HandlerPlayersThreadsByMaps implements Runnable {
         while (!socket.isClosed()) {
 
             if (!map.isEmpty()) {
-                for (PlayerContract player : map.getPlayers()) {
-                    PlayerPacketAudio packetToPlayer = player.udpBufferQueueClean();
+                for (Player player : map.getPlayers()) {
+                    PlayerPacketAudio packetToPlayer = player.getPacket();
                     //Construct Buffer Server to Client;
                     PlayerPacketAudio packet = player.unQueueMyPacket();
                     int x = player.getXcoord();
@@ -110,13 +110,13 @@ class HandlerPlayersThreadsByMaps implements Runnable {
                         for (int ry = -1; ry <= 1; ry++) {
                             for (int rz = -1; rz <= 1; rz++) {
                                 Chunk actualChunk = map.getChunk(coordsChunk[0] + rx, coordsChunk[1] + ry, coordsChunk[2] + rz);
-                                for (PlayerContract playerinChunk : actualChunk.getPlayers()) {
+                                for (Player playerinChunk : actualChunk.getPlayers()) {
                                     int vX = playerinChunk.getXcoord();
                                     int vY = playerinChunk.getYcoord();
                                     int vZ = playerinChunk.getZcoord();
                                     int distance = distanceTo(x, y, z, vX, vY, vZ);
                                     if (distance < 10 && distance > -10) {
-                                        playerinChunk.receiveFromGeral(packet);
+                                        playerinChunk.addAudioToQueue(packet);
                                     }
                                 }
                             }

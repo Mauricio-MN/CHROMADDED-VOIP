@@ -7,8 +7,8 @@ import pasaud.voip.Maps.MapsManager;
 
 public class PlayersManager {
 
-    private ConcurrentHashMap<String, Player> players;
-    private ConcurrentHashMap<String, Player> preConnectedPlayers;
+    private ConcurrentHashMap<String, PlayerNormal> players;
+    private ConcurrentHashMap<String, PlayerNormal> preConnectedPlayers;
 
     private MapsManager mapsManager;
 
@@ -26,7 +26,7 @@ public class PlayersManager {
      * @param key decript key of packet;
      */
     public synchronized void addPreConnect(long token, int id, String name, byte[] key){
-        Player player = new Player(mapsManager);
+        PlayerNormal player = new PlayerNormal(mapsManager);
         player.setConnectionState(PlayerState.WAITING);
         player.setHashMapNb(token);
         player.setName(name);
@@ -46,15 +46,16 @@ public class PlayersManager {
         String infoPreConnectedHash = "" + id;
         if (preConnectedPlayers.containsKey(infoPreConnectedHash)) {
 
-            Player playerPreconnected = preConnectedPlayers.get(infoPreConnectedHash);
+            PlayerNormal playerPreconnected = preConnectedPlayers.get(infoPreConnectedHash);
 
-            HashInfo info = new HashInfo(address, port, playerPreconnected.getHashMapNb());
-            if (players.containsKey(info.getHash()) == false) {
-                Player player = new Player(mapsManager);
+            HashInfo hashkay = new HashInfo(address, port, playerPreconnected.getHashMapNb());
+            if (players.containsKey(hashkay.getHash()) == false) {
+                PlayerNormal player = new PlayerNormal(mapsManager);
                 player.setConnectionState(PlayerState.WAITING);
                 player.setID(id);
+                player.setKey(hashkay);
 
-                players.put(info.getHash(), player);
+                players.put(hashkay.getHash(), player);
             }
 
         }
@@ -78,7 +79,7 @@ public class PlayersManager {
     public synchronized void setPosition(HashInfo hashInfo, int map, int x, int y, int z) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
-            Player player = players.get(hash);
+            PlayerNormal player = players.get(hash);
             if (player.getMap() != map) player.setMap(map);
             player.setXcoord(x);
             player.setYcoord(y);
@@ -94,15 +95,15 @@ public class PlayersManager {
     public synchronized void setGroup(HashInfo hashInfo, int groupId) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
-            Player player = players.get(hash);
+            PlayerNormal player = players.get(hash);
             player.setGroup(groupId);
         }
     }
 
-    public synchronized PlayerContract getPlayer(HashInfo hashInfo) {
+    public synchronized Player getPlayer(HashInfo hashInfo) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
-            Player player = players.get(hash);
+            PlayerNormal player = players.get(hash);
             return player;
         }
         return null;
