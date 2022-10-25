@@ -9,11 +9,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import pasaud.voip.player.PlayersManager;
 
-public class ServerTCP {
+public class TCPServer {
 
 ServerSocket server;
 
-    public ServerTCP(PlayersManager playersManager) {
+    public TCPServer(PlayersManager playersManager) {
         try {
             server = new ServerSocket(909001);
             System.out.println("Servidor ouvindo a porta 909001");

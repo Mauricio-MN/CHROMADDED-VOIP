@@ -1,6 +1,6 @@
 
-package pasaud.voip.protocol.tcp.gameservertoserver;
+package pasaud.voip.protocol.tcp;
 
-public enum Headers {
+public enum TCPHeaderType {
     ADDPLAYER, ADDGROUP, ADDPLAYERTOGROUP, GETPLAYERINFO, FORCESETPLAYERINFO, DISCONNECTPLAYER, BANPLAYER, MUTEPLAYER, SENDAUDIOTOGROUP;
 }
