@@ -1,21 +1,25 @@
 
 package pasaud.voip.player;
 
-import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
-import pasaud.voip.Maps.MapsManager;
+
+import pasaud.voip.player.hash.PlayerHashInfo;
+import pasaud.voip.player.hash.PlayerPreConnectHashInfo;
 
 public class PlayersManager {
 
-    private ConcurrentHashMap<String, PlayerNormal> players;
-    private ConcurrentHashMap<String, PlayerNormal> preConnectedPlayers;
+    private static ConcurrentHashMap<String, Player> players;
+    private static ConcurrentHashMap<String, Player> playerbyname;
+    private static ConcurrentHashMap<Integer, Player> playerbyid;
+    private static ConcurrentHashMap<String, Player> preConnectedPlayers;
 
-    private MapsManager mapsManager;
-
-    public PlayersManager(MapsManager mapsManager) {
-        this.players = new ConcurrentHashMap();
-        this.preConnectedPlayers = new ConcurrentHashMap();
-        this.mapsManager = mapsManager;
+    private PlayersManager() {
+    }
+    
+    public static void init() {
+    	players = new ConcurrentHashMap<>();
+    	playerbyname = new ConcurrentHashMap<>();
+        preConnectedPlayers = new ConcurrentHashMap<>();
     }
 
     /**
@@ -23,89 +27,105 @@ public class PlayersManager {
      * @param token Token access of player;
      * @param id ID access of player;
      * @param name Name of player;
-     * @param key decript key of packet;
+     * @param key decript key for packets;
      */
-    public synchronized void addPreConnect(long token, int id, String name, byte[] key){
-        PlayerNormal player = new PlayerNormal(mapsManager);
-        player.setConnectionState(PlayerState.WAITING);
-        player.setHashMapNb(token);
-        player.setName(name);
-        player.setID(id);
-
-        String infoHash = "" + id;
-        preConnectedPlayers.put(infoHash, player);
+    public static void addPreConnect(PlayerHashInfo hash, byte[] keycript){
+    	if (!preConnectedPlayers.containsKey(hash.getHash()) ) {
+	        Player player = new PlayerNormal();
+	        player.setConnectionState(PlayerState.WAITING);
+	        player.setName(hash.getname());
+	        player.setID(hash.getId());
+	        player.setHashCodePreConnect(hash);
+	        preConnectedPlayers.put(hash.getHash(), player);
+	        playerbyname.put(hash.getname(), player);
+	        playerbyid.put(hash.getId(), player);
+    	}
     }
 
     /**
      * 
+     * @param socket Server Socket;
      * @param address IP Address from player;
      * @param port UDP opened port from player;
      * @param id ID access of player;
      */
-    public synchronized void addConnect(InetAddress address, int port, int id) {
-        String infoPreConnectedHash = "" + id;
-        if (preConnectedPlayers.containsKey(infoPreConnectedHash)) {
-
-            PlayerNormal playerPreconnected = preConnectedPlayers.get(infoPreConnectedHash);
-
-            HashInfo hashkay = new HashInfo(address, port, playerPreconnected.getHashMapNb());
-            if (players.containsKey(hashkay.getHash()) == false) {
-                PlayerNormal player = new PlayerNormal(mapsManager);
-                player.setConnectionState(PlayerState.WAITING);
-                player.setID(id);
-                player.setKey(hashkay);
-
-                players.put(hashkay.getHash(), player);
+    
+    public static void addConnect(PlayerHashInfo hash) {
+    	PlayerHashInfo possiblePreConnect = 
+    			new PlayerPreConnectHashInfo(hash.getRegisterId(), hash.getId());
+        if (preConnectedPlayers.containsKey(possiblePreConnect.getHash()) ) {
+        	Player player = preConnectedPlayers.get(possiblePreConnect.getHash());
+            if (!players.containsKey(hash.getHash())) {
+                player.setConnectionState(PlayerState.CONNECTED);
+                player.setHashCode(hash);
+                players.put(hash.getHash(), player);
             }
 
         }
     }
 
-    public synchronized void disconnect(HashInfo hashInfo) {
+    public static void disconnect(PlayerHashInfo hashInfo) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
+        	Player player = players.get(hash);
+        	preConnectedPlayers.remove(player.getHashCodePreConnect().getHash());
+        	playerbyid.remove(player.getID());
+        	playerbyname.remove(player.getHashCodePreConnect().getname());
             players.remove(hash);
         }
     }
 
-    /**
-     *
-     * @param hashInfo Base Class HashInfo to compute Token + Address to HashString;
-     * @param map Map;
-     * @param x Coord X;
-     * @param y Coord Y;
-     * @param z Coord Z;
-     */
-    public synchronized void setPosition(HashInfo hashInfo, int map, int x, int y, int z) {
+    public static Player getPlayer(PlayerHashInfo hashInfo) {
         String hash = hashInfo.getHash();
         if (players.containsKey(hash)) {
-            PlayerNormal player = players.get(hash);
-            if (player.getMap() != map) player.setMap(map);
-            player.setXcoord(x);
-            player.setYcoord(y);
-            player.setZcoord(z);
-        }
-    }
-
-    /**
-     *
-     * @param hashInfo Base Class HashInfo to compute Token + Address to HashString;
-     * @param groupId Id of Group to talk;
-     */
-    public synchronized void setGroup(HashInfo hashInfo, int groupId) {
-        String hash = hashInfo.getHash();
-        if (players.containsKey(hash)) {
-            PlayerNormal player = players.get(hash);
-            player.setGroup(groupId);
-        }
-    }
-
-    public synchronized Player getPlayer(HashInfo hashInfo) {
-        String hash = hashInfo.getHash();
-        if (players.containsKey(hash)) {
-            PlayerNormal player = players.get(hash);
+            Player player = players.get(hash);
             return player;
         }
         return null;
+    }
+    
+    public static Player getPlayerByHashString(String hash) {
+        if (players.containsKey(hash)) {
+            Player player = players.get(hash);
+            return player;
+        }
+        return null;
+    }
+    
+    public static Player getPlayerByName(String name) {
+        if (playerbyname.containsKey(name)) {
+            Player player = playerbyname.get(name);
+            return player;
+        }
+        return null;
+    }
+    
+    public static Player getPlayerByID(Integer id) {
+        if (playerbyid.containsKey(id)) {
+            Player player = playerbyid.get(id);
+            return player;
+        }
+        return null;
+    }
+
+    public static boolean containsPlayerConnected(PlayerHashInfo hashInfo) {
+        if (players.containsKey(hashInfo.getHash())) {
+            return true;
+        }
+        return false;
+    }
+    
+    public static boolean containsPlayerConnectedByHashString(String hash) {
+        if (players.containsKey(hash)) {
+            return true;
+        }
+        return false;
+    }
+    
+    public static boolean containsPlayerByName(String name) {
+        if (playerbyname.containsKey(name)) {
+            return true;
+        }
+        return false;
     }
 }

@@ -1,13 +1,16 @@
 package pasaud.voip.player;
 
 import pasaud.voip.player.audio.PlayerPacketAudio;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import pasaud.voip.Maps.MapsManager;
+import pasaud.voip.player.hash.PlayerHashInfo;
+import pasaud.voip.protocol.udp.ProtocolToClient;
+import pasaud.voip.genericsocket.PlayersSocket;
+import pasaud.voip.maps.MapsManager;
 import pasaud.voip.player.audio.PlayerAudioType;
 
 public class PlayerNormal implements Player {
 
-    private HashInfo key;
+    private PlayerHashInfo hashCode;
+    private PlayerHashInfo hashCodePreConnect;
 
     private int x;
 
@@ -17,39 +20,33 @@ public class PlayerNormal implements Player {
 
     private int map;
 
-    private long numberMapHash;
-
     private int id;
 
     private String name;
 
     private boolean groupParticipate;
     private int groupId;
+    
+    private int packetNumber;
 
     private PlayerState connectionState;
+    
+    private byte[] cryptoKey;
 
-    private ConcurrentLinkedQueue<PlayerPacketAudio> receivedAudio = new ConcurrentLinkedQueue<>();
-
-
-    private MapsManager externMapManager;
-
-    PlayerNormal(MapsManager externMapManager) {
-
-        this.externMapManager = externMapManager;
+    public PlayerNormal() {
 
         this.x = -1;
         this.y = -1;
         this.z = -1;
         this.map = -1;
-        this.numberMapHash = -1;
         this.id = -1;
         this.name = "";
         this.connectionState = PlayerState.EMPTY;
         this.groupParticipate = false;
         this.groupId = -1;
+        this.cryptoKey = new byte[16];
 
-
-}
+    }
 
     @Override
     public synchronized int getMap() {
@@ -82,44 +79,49 @@ public class PlayerNormal implements Player {
     }
 
     @Override
-    public synchronized long getHashMapNb() {
-        return numberMapHash;
-    }
-
-    @Override
     public synchronized boolean getIsGroupTalk() {
         return groupParticipate;
     }
 
     @Override
-    public void setKey(HashInfo key){
-        this.key = key;
+    public void setHashCode(PlayerHashInfo hash){
+        this.hashCode = hash;
     }
 
     @Override
-    public HashInfo getKey(){
-        return this.key;
+    public PlayerHashInfo getHashCode(){
+        return this.hashCode;
+    }
+    
+    @Override
+	public void setHashCodePreConnect(PlayerHashInfo hash) {
+    	this.hashCodePreConnect = hash;
+    }
+
+    @Override
+	public PlayerHashInfo getHashCodePreConnect() {
+    	return this.hashCodePreConnect;
     }
 
     @Override
     public synchronized void setMap(int map) {
         if (map != this.map) {
-            if (externMapManager.getMap(this.map) != null) {
-                externMapManager.getMap(this.map).removePlayer(this);
-                externMapManager.getMap(this.map).getChunkByCoords(x, y, z).removePlayer(this);
+            if (MapsManager.getMap(this.map) != null) {
+                MapsManager.getMap(this.map).removePlayer(this);
+                MapsManager.getMap(this.map).getChunkByCoords(x, y, z).removePlayer(this);
             }
             this.map = map;
-            externMapManager.getMap(this.map).addPlayer(this);
-            externMapManager.getMap(this.map).getChunkByCoords(x, y, z).addPlayer(this);
+            MapsManager.getMap(this.map).addPlayer(this);
+            MapsManager.getMap(this.map).getChunkByCoords(x, y, z).addPlayer(this);
         }
     }
 
     @Override
     public synchronized void setXcoord(int x) {
-        if (!externMapManager.getMap(this.map).getChunkByCoords(x, this.y, this.z).havePlayer(this)) {
-            externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
+        if (!MapsManager.getMap(this.map).getChunkByCoords(x, this.y, this.z).havePlayer(this)) {
+            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
             this.x = x;
-            externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
+            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
         } else {
             this.x = x;
         }
@@ -127,10 +129,10 @@ public class PlayerNormal implements Player {
 
     @Override
     public synchronized void setYcoord(int y) {
-        if (!externMapManager.getMap(this.map).getChunkByCoords(this.x, y, this.z).havePlayer(this)) {
-            externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
+        if (!MapsManager.getMap(this.map).getChunkByCoords(this.x, y, this.z).havePlayer(this)) {
+            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
             this.y = y;
-            externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
+            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
         } else {
             this.y = y;
         }
@@ -138,13 +140,21 @@ public class PlayerNormal implements Player {
 
     @Override
     public synchronized void setZcoord(int z) {
-        if (!externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, z).havePlayer(this)) {
-            externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
+        if (!MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, z).havePlayer(this)) {
+            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
             this.z = z;
-            externMapManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
+            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
         } else {
             this.z = z;
         }
+    }
+    
+    @Override
+    public synchronized void setPosition(int map, int x, int y, int z){
+    	this.setMap(map);
+    	this.setYcoord(y);
+    	this.setXcoord(x);
+    	this.setZcoord(z);
     }
 
     @Override
@@ -155,11 +165,6 @@ public class PlayerNormal implements Player {
     @Override
     public synchronized void setID(int id) {
         this.id = id;
-    }
-
-    @Override
-    public synchronized void setHashMapNb(long numberMapHash) {
-        this.numberMapHash = numberMapHash;
     }
 
     @Override
@@ -184,19 +189,31 @@ public class PlayerNormal implements Player {
     }
 
     @Override
-    public PlayerPacketAudio queueMyPacket(PlayerAudioType audioType, byte[] audio){
-        PlayerPacketAudio packet = new PlayerPacketAudio(this.key.getHash(), audio, audioType);
+    public PlayerPacketAudio packetMyAudio(PlayerAudioType audioType, Integer number, byte[] audio){
+        PlayerPacketAudio packet = new PlayerPacketAudio(this.id, this.hashCode.getHash(), number, audio, audioType);
         return packet;
     }
 
     @Override
-    public synchronized void addAudioToQueue(PlayerPacketAudio packet) {
-        //receivedAudio.add(packet);
+    public boolean sendPacketToMe(PlayerAudioType audioType, PlayerPacketAudio packet){
+    	if(groupParticipate && audioType == PlayerAudioType.TOGROUP) {
+    		
+    		return true;
+    	} else if(groupParticipate == false && audioType == PlayerAudioType.TOGERAL) {
+    		byte[] data = ProtocolToClient.createAudioInfo(packet.getID(), packet.getNumber(), packet.getAudio());
+    		PlayersSocket.send(hashCode.getAddress(), hashCode.getPort(), data);
+    		return true;
+    	}
+        return false;
     }
-
+    
     @Override
-    public synchronized PlayerPacketAudio getPacket(){
-        return receivedAudio.poll();
+    public boolean isValidNumberPacketAudio(int nb) {
+    	if(nb > packetNumber || (packetNumber == 255 && nb < 35)) {
+    		packetNumber = nb;
+    		return true;
+    	}
+    	return false;
     }
 
 }

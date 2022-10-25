@@ -1,19 +1,24 @@
 
-package pasaud.voip.Maps;
+package pasaud.voip.maps;
 
 import java.util.LinkedList;
 import pasaud.voip.player.Player;
 
 public class Map {
     private Chunk[][][] chunks;
-    private int mapNumb;
     private int oneChunkEqualIntCoordinates;
+    private int maxCoordsXY;
+    private int maxCoordsZ;
+    private int maxAudioDistance;
 
     private LinkedList<Player> players;
 
-    public Map(int oneChunkRepresentsIntCoords, int ChunksSizeX, int ChunksSizeY, int ChunksSizeZ) {
+    public Map(int oneChunkRepresentsIntCoords, int ChunksSizeXY, int ChunksSizeZ, int maxAudioDistance) {
+        this.maxAudioDistance = maxAudioDistance;
         this.oneChunkEqualIntCoordinates = oneChunkRepresentsIntCoords;
-        this.chunks = new Chunk[ChunksSizeX][ChunksSizeY][ChunksSizeZ];
+        maxCoordsXY = ChunksSizeXY;
+        maxCoordsZ = ChunksSizeZ;
+        this.chunks = new Chunk[ChunksSizeXY][ChunksSizeXY][ChunksSizeZ+1];
         players = new LinkedList<>();
     }
 
@@ -21,7 +26,14 @@ public class Map {
         return chunks.length;
     }
 
+    public synchronized boolean containsChunk(int x, int y, int z){
+        if (x > maxCoordsXY || y > maxCoordsXY || z > maxCoordsZ || x < 0 || y < 0 || z < 0) {
+            return false;
+        }
+        return true;
+    }
     public synchronized Chunk getChunk(int x, int y, int z) {
+
         if (chunks[x][y][z] == null) {
             chunks[x][y][z] = new Chunk();
         }
@@ -52,11 +64,15 @@ public class Map {
     }
 
     public synchronized Player[] getPlayers() {
-        if (this.isEmpty()) {
-            Player[] playersArray = (Player[]) players.toArray();
+        if (!players.isEmpty()) {
+            Player[] playersArray = players.toArray(new Player[0]);
             return playersArray;
         }
         return null;
+    }
+
+    public int getMaxAudioDistance() {
+        return maxAudioDistance;
     }
 
     public synchronized boolean isEmpty() {

@@ -1,64 +1,67 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Interface.java to edit this template
- */
+
 package pasaud.voip.player;
 
 import pasaud.voip.player.audio.PlayerPacketAudio;
+import pasaud.voip.player.hash.PlayerHashInfo;
 import pasaud.voip.player.audio.PlayerAudioType;
 
-/**
- *
- * @author wghat
- */
 public interface Player {
 
-public int getMap();
-public int getXcoord();
-public int getYcoord();
-public int getZcoord();
+	public int getMap();
 
-public String getName();
-public int getID();
-public long getHashMapNb();
+	public int getXcoord();
 
-public boolean getIsGroupTalk();
+	public int getYcoord();
 
-public void setKey(HashInfo key);
-public HashInfo getKey();
+	public int getZcoord();
 
-public void setMap(int map);
-public void setXcoord(int x);
-public void setYcoord(int y);
-public void setZcoord(int z);
+	public String getName();
 
-public void setName(String name);
-public void setID(int id);
-public void setHashMapNb(long numberMap);
+	public int getID();
 
-public void setGroupTalking(boolean isTalking);
-public void setGroup(int id);
+	public boolean getIsGroupTalk();
 
-public PlayerState getState();
-public void setConnectionState(PlayerState state);
+	public void setHashCode(PlayerHashInfo hash);
 
-/**
-* Add Audio Buffer to Player Queue;
-     * @param audioType PlayerAudioType ENUM;
-     * @param audio Buffer;
-     * @return PlayerPacketAudio;
-*/
-public PlayerPacketAudio queueMyPacket(PlayerAudioType audioType, byte[] audio);
+	public PlayerHashInfo getHashCode();
+	
+	public void setHashCodePreConnect(PlayerHashInfo hash);
 
-/**
-* Add Audio Buffer to Player from another player of Geral(from Map location);
-     * @param packet
-*/
-public void addAudioToQueue(PlayerPacketAudio packet);
+	public PlayerHashInfo getHashCodePreConnect();
 
-/**
-* get Packet audio buffer from player;
-     * @return packetaudio
-*/
- public PlayerPacketAudio getPacket();
+	public void setMap(int map);
+
+	public void setXcoord(int x);
+
+	public void setYcoord(int y);
+
+	public void setZcoord(int z);
+	
+	public void setPosition(int map, int x, int y, int z);
+
+	public void setName(String name);
+
+	public void setID(int id);
+
+	public void setGroupTalking(boolean isTalking);
+
+	public void setGroup(int id);
+
+	public PlayerState getState();
+
+	public void setConnectionState(PlayerState state);
+
+	/**
+	 * Add Audio Buffer to Player Queue;
+	 * 
+	 * @param audioType PlayerAudioType ENUM;
+	 * @param audio     Buffer;
+	 * @return PlayerPacketAudio;
+	 */
+	public PlayerPacketAudio packetMyAudio(PlayerAudioType audioType, Integer number, byte[] audio);
+
+	public boolean sendPacketToMe(PlayerAudioType audioType, PlayerPacketAudio packet);
+	
+	public boolean isValidNumberPacketAudio(int nb);
+
 }

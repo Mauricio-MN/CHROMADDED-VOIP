@@ -1,5 +1,5 @@
 
-package pasaud.voip.Maps;
+package pasaud.voip.maps;
 
 import java.util.LinkedList;
 import pasaud.voip.player.Player;
