@@ -19,7 +19,7 @@ public class BufferedProtocol {
     	bufferMap_TypeBytes = new HashMap<>();
     }
 
-    public void insertPropierty(String name, byte[] buffer, BufferConvertType type) {
+    public void insertProperty(String name, byte[] buffer, BufferConvertType type) {
     	
     	switch(type) {
     	  case INTEGER:
@@ -38,7 +38,6 @@ public class BufferedProtocol {
     		  bufferMap_TypeString.put(name, outStr);
     	    break;
     	  case BOOL:
-    		  
     		  bufferMap_TypeBool.put(name, buffer[0] & 0xFF);
       	    break;
     	  case BYTES:

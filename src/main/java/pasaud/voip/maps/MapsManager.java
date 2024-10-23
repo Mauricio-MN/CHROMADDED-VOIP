@@ -4,7 +4,7 @@ package pasaud.voip.maps;
 
 public final class MapsManager {
 
-    private static Map[] maps;
+    private static ServerMap[] maps;
     
     private MapsManager() {
     	
@@ -15,13 +15,20 @@ public final class MapsManager {
      *
      * @param Maps Map[], list of maps;
      */
-    public static void init(Map[] Maps) {
+    public static void init(ServerMap[] Maps) {
             maps = Maps;
     }
+    
+    public static boolean existMap(int i) {
+    	if(i < 0 || i >= maps.length) {
+    		return false;
+    	}
+        return true;
+    }
 
-    public static Map getMap(int i) {
-    	if(i < 0 || i > maps.length - 1) {
-    		return null;
+    public static ServerMap getMap(int i) {
+    	if(i < 0 || i >= maps.length) {
+    		return new ServerMap();
     	}
         return maps[i];
     }
@@ -30,7 +37,7 @@ public final class MapsManager {
     	return maps.length;
     }
 
-    public synchronized static Map[] getMaps() {
+    public synchronized static ServerMap[] getMaps() {
         return maps;
     }
 

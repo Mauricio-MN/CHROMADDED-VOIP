@@ -28,8 +28,15 @@ public class ProtocolBase {
         return 0;
     }
 
-    public void bufferProcess(byte[] buffer, BufferedProtocol bprot){
+    /**
+     * Process buffer to a DTO info object
+     * @param buffer buffer bytes;
+     * @param bprot DTO reference;
+     * @return return extra information in buffer
+     */
+    public byte[] bufferProcess(byte[] buffer, BufferedProtocol bprot){
         int i = 0;
+        
         for (Map.Entry<String, Integer> fragment : fragments.entrySet()) {
             byte[] dest = new byte[fragment.getValue()];
             if (buffer.length - i < fragment.getValue()){
@@ -39,8 +46,16 @@ public class ProtocolBase {
             }
             i += fragment.getValue();
             
-            bprot.insertPropierty(fragment.getKey(), dest, fragments_types.get(fragment.getKey()));
+            bprot.insertProperty(fragment.getKey(), dest, fragments_types.get(fragment.getKey()));
         }
+        
+        if (buffer.length > i) {
+            byte[] extra = new byte[buffer.length - i];
+            System.arraycopy(buffer, i, extra, 0, buffer.length - i);
+            return extra;
+        }
+        
+        return new byte[0];
     }
 
     public String getName() {

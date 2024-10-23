@@ -1,37 +1,48 @@
 
 package pasaud.voip.maps;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
+
 import pasaud.voip.player.Player;
 
 public class Chunk {
 
-    private LinkedList<Player> players;
+	private ConcurrentHashMap<Integer, Player> players;
 
     public Chunk() {
-        players = new LinkedList<>();
+        players = new ConcurrentHashMap<>();
     }
 
-    public synchronized Player[] getPlayers() {
-        Player[] playersArray = (Player[]) players.toArray();
+    public Player[] getPlayers() {
+        if (!players.isEmpty()) {
+            Player[] playersArray = players.values().toArray(new Player[0]);
+            return playersArray;
+        }
+        Player[] playersArray = new Player[0];
         return playersArray;
     }
 
-    public synchronized void addPlayer(Player player) {
-        if (players.indexOf(player) == -1) {
-            players.add(player);
+    public boolean isEmpty() {
+        return players.isEmpty();
+    }
+    
+    public void addPlayer(Player player) {
+        if (!players.containsKey(player.getID())) {
+            players.put(player.getID(), player);
         }
     }
 
-    public synchronized void removePlayer(Player player) {
-        players.removeFirstOccurrence(player);
+    public void removePlayer(int id) {
+    	if(players.containsKey(id)) {
+    		players.remove(id);
+    	}
     }
 
-    public synchronized boolean havePlayer(Player player) {
-        if (players.indexOf(player) == -1) {
-            return false;
+    public boolean havePlayer(int id) {
+        if (players.containsKey(id)) {
+            return true;
         }
-        return true;
+        return false;
     }
 
 }

@@ -10,28 +10,23 @@ import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
-import pasaud.voip.ClientBufferParser;
-import pasaud.voip.maps.Map;
+import pasaud.voip.maps.ServerMap;
 import pasaud.voip.maps.MapsManager;
 import pasaud.voip.player.Player;
 import pasaud.voip.player.PlayerNormal;
 import pasaud.voip.player.PlayersManager;
-import pasaud.voip.player.audio.PlayerAudioType;
 import pasaud.voip.player.audio.PlayerPacketAudio;
-import pasaud.voip.player.hash.PlayerHashInfo;
 import pasaud.voip.protocol.udp.BufferConvertType;
 import pasaud.voip.protocol.udp.BufferTransform;
-import pasaud.voip.protocol.udp.BufferedProtocol;
-import pasaud.voip.protocol.udp.ProtocolFromClient;
 
 class MainTest {
 
 	@Test
 	void MapsManagerTest() {
 		
-		Map maps[] = new Map[2];
-		maps[0] = new Map(16,16,16,10);
-		maps[1] = new Map(16,16,16,10);
+		ServerMap maps[] = new ServerMap[2];
+		maps[0] = new ServerMap(16,16,16,10);
+		maps[1] = new ServerMap(16,16,16,10);
 		MapsManager.init(maps);
 		System.out.println(Arrays.toString(MapsManager.getMaps()));
 		Player player = new PlayerNormal();

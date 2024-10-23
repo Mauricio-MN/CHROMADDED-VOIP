@@ -52,8 +52,8 @@ public final class ProtocolFromClient {
         GroupInfo.registerTypes(FragmentsTypes);
 
         LinkedHashMap<String, Integer> handchackeFragments = new LinkedHashMap<>();
-        handchackeFragments.put(REGISTER_ID, 4);
         handchackeFragments.put(ID, 4);
+        
         HandChacke = new ProtocolBase("HandChacke", handchackeFragments);
         HandChacke.registerTypes(FragmentsTypes);
 

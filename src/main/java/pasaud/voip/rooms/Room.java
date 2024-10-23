@@ -1,49 +1,72 @@
 
 package pasaud.voip.rooms;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
+
 import pasaud.voip.player.Player;
 
 public class Room {
 
-    private int id;
-    private LinkedList<Player> players;
+    private int roomId;
+    private ConcurrentHashMap<Integer, Player> players;
+    private ConcurrentHashMap<Integer, Boolean> allowedPlayers;
 
-    public Room(int id) {
-        players = new LinkedList<>();
-        this.id = id;
+    public Room(int roomId) {
+        players = new ConcurrentHashMap<>();
+        allowedPlayers = new ConcurrentHashMap<>();
+        this.roomId = roomId;
+    }
+    
+    public void addAllowedPlayer(Integer id) {
+    	if(!haveAllowedPlayer(id)) {
+    		allowedPlayers.put(id, true);
+    	}
+    }
+    
+    public void removeAllowedPlayer(Integer id) {
+    	allowedPlayers.remove(id);
+    }
+    
+    public synchronized boolean haveAllowedPlayer(Integer id) {
+        if (allowedPlayers.containsKey(id)) {
+            return true;
+        }
+        return false;
     }
 
-    public void resetGroup() {
-        players.clear();
+
+    public void addPlayer(Integer id, Player player) {
+    	if(!haveAllowedPlayer(id)) {
+    		return;
+    	}
+    	
+    	if(!havePlayer(id)) {
+    		players.put(id, player);
+    	}
     }
 
-    public void addPlayer(Player player) {
-        players.add(player);
-    }
-
-    public void removePlayer(Player player) {
-        players.remove(player);
+    public void removePlayer(Integer id) {
+        players.remove(id);
     }
     
     public void clearRoom() {
     	players.clear();
     }
 
-    public synchronized Player[] getPlayers() {
-        Player[] playersArray = (Player[]) players.toArray();
+    public Player[] getPlayers() {
+        Player[] playersArray = (Player[]) players.values().toArray();
         return playersArray;
     }
     
-    public synchronized boolean havePlayer(Player player) {
-        if (players.indexOf(player) == -1) {
-            return false;
+    public synchronized boolean havePlayer(Integer id) {
+        if (players.containsKey(id)) {
+            return true;
         }
-        return true;
+        return false;
     }
     
     public int getID() {
-    	return id;
+    	return roomId;
     }
 
 }

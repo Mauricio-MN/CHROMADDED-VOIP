@@ -3,15 +3,18 @@ package pasaud.voip.player;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import pasaud.voip.player.hash.PlayerHashInfo;
-import pasaud.voip.player.hash.PlayerPreConnectHashInfo;
+import pasaud.voip.types.CAddress;
 
+/**
+ * Manager of players online and pre connected's
+ */
 public class PlayersManager {
 
-    private static ConcurrentHashMap<String, Player> players;
     private static ConcurrentHashMap<String, Player> playerbyname;
-    private static ConcurrentHashMap<Integer, Player> playerbyid;
-    private static ConcurrentHashMap<String, Player> preConnectedPlayers;
+    private static ConcurrentHashMap<String, Player> playerbyAddress;
+    private static ConcurrentHashMap<Integer, Player> players;
+    private static ConcurrentHashMap<Integer, Player> preConnectedPlayers;
+    private static ConcurrentHashMap<Integer, Player> preConnectedPlayerBySecretId;
 
     private PlayersManager() {
     }
@@ -20,78 +23,91 @@ public class PlayersManager {
     	players = new ConcurrentHashMap<>();
     	playerbyname = new ConcurrentHashMap<>();
         preConnectedPlayers = new ConcurrentHashMap<>();
+        playerbyAddress = new ConcurrentHashMap<>();
+        preConnectedPlayerBySecretId = new ConcurrentHashMap<>();
+     
     }
+    
 
     /**
-     * Add pré connected Player by GameServer
-     * @param token Token access of player;
-     * @param id ID access of player;
-     * @param name Name of player;
-     * @param key decript key for packets;
+     * Add pre connected Player by API
      */
-    public static void addPreConnect(PlayerHashInfo hash, byte[] keycript){
-    	if (!preConnectedPlayers.containsKey(hash.getHash()) ) {
-	        Player player = new PlayerNormal();
+    public static void addPreConnect(Player player){
+    	if (!preConnectedPlayers.containsKey(player.getID()) ) {
 	        player.setConnectionState(PlayerState.WAITING);
-	        player.setName(hash.getname());
-	        player.setID(hash.getId());
-	        player.setHashCodePreConnect(hash);
-	        preConnectedPlayers.put(hash.getHash(), player);
-	        playerbyname.put(hash.getname(), player);
-	        playerbyid.put(hash.getId(), player);
+	        preConnectedPlayers.put(player.getID(), player);
+	        playerbyname.put(player.getPublicId(), player);
+	        preConnectedPlayerBySecretId.put(player.getScretID(), player);
     	}
     }
+    
+    /**
+     * Add connected Player by client (first 'addPreConnect')
+     */
+    public static Boolean addConnect(Player player) {	
+    	
+        if (preConnectedPlayers.containsKey(player.getID()) ) {
+            if (!players.containsKey(player.getID())) {
+                player.setConnectionState(PlayerState.CONNECTED);
+                players.put(player.getID(), player);
+                CAddress caddress = new CAddress(player.getAddress(), player.getPort());
+                playerbyAddress.put(caddress.toString(), player);
+            }
+            preConnectedPlayers.remove(player.getID());
+            preConnectedPlayerBySecretId.remove(player.getScretID());
+            return true;
+        } else {
+        	return false;
+        }
+    }
 
     /**
-     * 
-     * @param socket Server Socket;
-     * @param address IP Address from player;
-     * @param port UDP opened port from player;
-     * @param id ID access of player;
+     * Remove connected Player
+     * @param player_id public id of player
      */
-    
-    public static void addConnect(PlayerHashInfo hash) {
-    	PlayerHashInfo possiblePreConnect = 
-    			new PlayerPreConnectHashInfo(hash.getRegisterId(), hash.getId());
-        if (preConnectedPlayers.containsKey(possiblePreConnect.getHash()) ) {
-        	Player player = preConnectedPlayers.get(possiblePreConnect.getHash());
-            if (!players.containsKey(hash.getHash())) {
-                player.setConnectionState(PlayerState.CONNECTED);
-                player.setHashCode(hash);
-                players.put(hash.getHash(), player);
-            }
-
+    public static void disconnect(Integer player_id) {
+        if (players.containsKey(player_id)) {
+        	Player playerRef = players.get(player_id);
+        	playerbyname.remove(playerRef.getPublicId());
+        	CAddress caddress = new CAddress(playerRef.getAddress(), playerRef.getPort());
+            playerbyAddress.remove(caddress.toString());
+            players.remove(player_id);
+            playerRef.removeFromMap();
+        }
+        if (preConnectedPlayers.containsKey(player_id)) {
+        	Player playerRef = preConnectedPlayers.get(player_id);
+        	if(playerbyname.containsKey(playerRef.getPublicId()) ) {
+        		playerbyname.remove(playerRef.getPublicId());
+        	}
+        	preConnectedPlayerBySecretId.remove(playerRef.getScretID());
+        	preConnectedPlayers.remove(player_id);
         }
     }
 
-    public static void disconnect(PlayerHashInfo hashInfo) {
-        String hash = hashInfo.getHash();
-        if (players.containsKey(hash)) {
-        	Player player = players.get(hash);
-        	preConnectedPlayers.remove(player.getHashCodePreConnect().getHash());
-        	playerbyid.remove(player.getID());
-        	playerbyname.remove(player.getHashCodePreConnect().getname());
-            players.remove(hash);
-        }
-    }
-
-    public static Player getPlayer(PlayerHashInfo hashInfo) {
-        String hash = hashInfo.getHash();
-        if (players.containsKey(hash)) {
-            Player player = players.get(hash);
+    /**
+     * Get connected Player by hash
+     * @param hashInfo connect hash;
+     */
+    public static Player getPlayer(Integer player_id) {
+        if (players.containsKey(player_id)) {
+            Player player = players.get(player_id);
             return player;
         }
         return null;
     }
     
-    public static Player getPlayerByHashString(String hash) {
-        if (players.containsKey(hash)) {
-            Player player = players.get(hash);
+    public static Player getPlayerPreConnect(Integer player_id) {
+        if (preConnectedPlayers.containsKey(player_id)) {
+            Player player = preConnectedPlayers.get(player_id);
             return player;
         }
         return null;
     }
     
+    /**
+     * Get connected Player by name
+     * @param name player name;
+     */
     public static Player getPlayerByName(String name) {
         if (playerbyname.containsKey(name)) {
             Player player = playerbyname.get(name);
@@ -100,30 +116,62 @@ public class PlayersManager {
         return null;
     }
     
-    public static Player getPlayerByID(Integer id) {
-        if (playerbyid.containsKey(id)) {
-            Player player = playerbyid.get(id);
+    public static Player getPlayerByAddress(CAddress caddress) {
+    	String addressStr = caddress.toString();
+        if (playerbyAddress.containsKey(addressStr)) {
+            Player player = playerbyAddress.get(addressStr);
+            return player;
+        }
+        return null;
+    }
+    
+    public static Player getPreConnectedPlayerByScretId(Integer scretet_id) {
+        if (preConnectedPlayerBySecretId.containsKey(scretet_id)) {
+            Player player = preConnectedPlayerBySecretId.get(scretet_id);
             return player;
         }
         return null;
     }
 
-    public static boolean containsPlayerConnected(PlayerHashInfo hashInfo) {
-        if (players.containsKey(hashInfo.getHash())) {
+    /**
+     * Verify connect state of player by hash info;
+     * @param hashInfo player hash;
+     * @return return TRUE if is connect, else return FALSE;
+     */
+    public static boolean containsPlayerConnected(Integer player_id) {
+        if (players.containsKey(player_id)) {
             return true;
         }
         return false;
     }
     
-    public static boolean containsPlayerConnectedByHashString(String hash) {
-        if (players.containsKey(hash)) {
+    public static boolean containsPreConnectedPlayer(Integer player_id) {
+        if (preConnectedPlayers.containsKey(player_id)) {
             return true;
         }
         return false;
     }
     
+    public static boolean containsPreConnectedPlayerBySecretId(Integer scretet_id) {
+        if (preConnectedPlayerBySecretId.containsKey(scretet_id)) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Verify state of player by name, NOT use for checks;
+     * @param name player name;
+     */
     public static boolean containsPlayerByName(String name) {
         if (playerbyname.containsKey(name)) {
+            return true;
+        }
+        return false;
+    }
+    
+    public static boolean containsPlayerByAddress(CAddress caddress) {
+        if (playerbyAddress.containsKey(caddress.toString())) {
             return true;
         }
         return false;

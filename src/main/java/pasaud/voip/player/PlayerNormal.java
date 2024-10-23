@@ -1,219 +1,519 @@
 package pasaud.voip.player;
 
 import pasaud.voip.player.audio.PlayerPacketAudio;
-import pasaud.voip.player.hash.PlayerHashInfo;
-import pasaud.voip.protocol.udp.ProtocolToClient;
-import pasaud.voip.genericsocket.PlayersSocket;
+import pasaud.voip.protocol.Protocol.Server;
+import pasaud.voip.rooms.Room;
+import pasaud.voip.rooms.RoomsManager;
+import pasaud.voip.types.CAddress;
+import pasaud.voip.types.Coord;
+import pasaud.voip.types.CoordFloat;
+
+import java.net.InetAddress;
+import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.protobuf.ByteString;
+
+import pasaud.voip.UDPServer;
+import pasaud.voip.crypto.Crypto;
+import pasaud.voip.genericsocket.SendDatagram;
 import pasaud.voip.maps.MapsManager;
-import pasaud.voip.player.audio.PlayerAudioType;
 
 public class PlayerNormal implements Player {
 
-    private PlayerHashInfo hashCode;
-    private PlayerHashInfo hashCodePreConnect;
-
-    private int x;
-
-    private int y;
-
-    private int z;
-
-    private int map;
-
-    private int id;
-
-    private String name;
-
-    private boolean groupParticipate;
-    private int groupId;
+    private Coord coord;
+    private CoordFloat preciseCoord;
     
-    private int packetNumber;
+    private Object setMapSync;
+    private Object setCoord;
+
+    private AtomicInteger map;
+
+    private AtomicInteger id;
+    
+    private AtomicInteger secret_id;
+
+    private String publicId;
+
+    private AtomicInteger groupId;
+    
+    private AtomicBoolean needSendCoordPos;
 
     private PlayerState connectionState;
     
-    private byte[] cryptoKey;
+    private Crypto crypto;
+    private AtomicBoolean cryptoIsActive;
+    
+    private CAddress caddress;
+    
+    SendDatagram sender;
+    
+    private static ConcurrentHashMap<Integer, Player> blockedUsers;
+    private static ConcurrentHashMap<Integer, ConcurrentLinkedQueue<PlayerPacketAudio>> audioPacketQueue;
+    
+    private AtomicInteger audioPacketNeededTime;
+    private Instant lastAudioSendTime;
+    private Object lastAudioSendTimeSync;
+    
+    private AtomicInteger packetNumber;
+    private AtomicBoolean localTalk;
+    private AtomicBoolean groupTalk;
+    private AtomicBoolean localListen;
+    private AtomicBoolean groupListen;
 
     public PlayerNormal() {
-
-        this.x = -1;
-        this.y = -1;
-        this.z = -1;
-        this.map = -1;
-        this.id = -1;
-        this.name = "";
+    	blockedUsers = new ConcurrentHashMap<>();
+    	this.id = new AtomicInteger();
+    	this.secret_id = new AtomicInteger();
+    	this.map = new AtomicInteger();
+    	this.cryptoIsActive = new AtomicBoolean();
+    	this.needSendCoordPos = new AtomicBoolean();
+        this.groupId = new AtomicInteger();
+        this.audioPacketQueue = new ConcurrentHashMap<>();
+        this.audioPacketNeededTime = new AtomicInteger();
+        this.audioPacketNeededTime.set(0);
+        this.lastAudioSendTime = Instant.now();
+        this.lastAudioSendTimeSync = new Object();
+        this.packetNumber = new AtomicInteger();
+		this.packetNumber.set(0);
+    	
+        this.coord = new Coord(-1,-1,-1);
+        this.preciseCoord = new CoordFloat(-1.0F,-1.0F,-1.0F);
+        this.map.set(-1);
+        this.id.set(-1);
+        this.publicId = "";
         this.connectionState = PlayerState.EMPTY;
-        this.groupParticipate = false;
-        this.groupId = -1;
-        this.cryptoKey = new byte[16];
-
-    }
-
-    @Override
-    public synchronized int getMap() {
-        return map;
-    }
-
-    @Override
-    public synchronized int getXcoord() {
-        return x;
-    }
-
-    @Override
-    public synchronized int getYcoord() {
-        return y;
-    }
-
-    @Override
-    public synchronized int getZcoord() {
-        return z;
-    }
-
-    @Override
-    public synchronized String getName() {
-        return name;
-    }
-
-    @Override
-    public synchronized int getID() {
-        return id;
-    }
-
-    @Override
-    public synchronized boolean getIsGroupTalk() {
-        return groupParticipate;
-    }
-
-    @Override
-    public void setHashCode(PlayerHashInfo hash){
-        this.hashCode = hash;
-    }
-
-    @Override
-    public PlayerHashInfo getHashCode(){
-        return this.hashCode;
+        this.groupId.set(-1);
+        this.cryptoIsActive.set(false);
+        this.caddress = new CAddress();
+        
+        this.needSendCoordPos.set(false);
+        
+        this.setMapSync = new Object();
+        this.setCoord = new Object();
+        
+        this.sender = new SendDatagram();
+        
+        this.localTalk = new AtomicBoolean();
+        this.localTalk.set(true);
+        this.groupTalk = new AtomicBoolean();
+        this.groupTalk.set(false);
+        this.localListen = new AtomicBoolean();
+        this.localListen.set(true);
+        this.groupListen = new AtomicBoolean();
+        this.groupListen.set(false);
     }
     
     @Override
-	public void setHashCodePreConnect(PlayerHashInfo hash) {
-    	this.hashCodePreConnect = hash;
+    public Coord getCoord() {
+    	synchronized(setCoord) {
+    		return new Coord(coord);
+    	}
+	}
+
+	@Override
+    public void initCrypto(byte[] key) {
+    	crypto = new Crypto(key);
+    	cryptoIsActive.set(true);;
+    }
+	
+	@Override
+	public byte[] decrypt(byte[] data) {
+		if(cryptoIsActive.get()) {
+			return crypto.decrypt(data);
+		}
+		return new byte[0];
+	}
+	@Override
+	public byte[] encrypt(byte[] data) {
+		if(cryptoIsActive.get()) {
+			return crypto.encrypt(data);
+		}
+		return new byte[0];
+	}
+
+    @Override
+    public int getMap() {
+        return map.get();
     }
 
     @Override
-	public PlayerHashInfo getHashCodePreConnect() {
-    	return this.hashCodePreConnect;
+    public synchronized String getPublicId() {
+        return new String(publicId);
     }
 
     @Override
-    public synchronized void setMap(int map) {
-        if (map != this.map) {
-            if (MapsManager.getMap(this.map) != null) {
-                MapsManager.getMap(this.map).removePlayer(this);
-                MapsManager.getMap(this.map).getChunkByCoords(x, y, z).removePlayer(this);
-            }
-            this.map = map;
-            MapsManager.getMap(this.map).addPlayer(this);
-            MapsManager.getMap(this.map).getChunkByCoords(x, y, z).addPlayer(this);
-        }
+    public int getID() {
+        return id.get();
     }
 
     @Override
-    public synchronized void setXcoord(int x) {
-        if (!MapsManager.getMap(this.map).getChunkByCoords(x, this.y, this.z).havePlayer(this)) {
-            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
-            this.x = x;
-            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
-        } else {
-            this.x = x;
-        }
+    public void setMap(int map) {
+    	synchronized(setMapSync) {
+	        if (map != this.map.get()) {
+	    		if(MapsManager.existMap(map)) {
+	    			unsafeRemoveFromMap();
+		            
+		            this.map.set(map);
+		            MapsManager.getMap(this.map.get()).addPlayer(this);
+		            MapsManager.getMap(this.map.get()).getChunkByPlayerCoords(coord).addPlayer(this);
+	    		}
+	        }
+    	}
     }
 
     @Override
-    public synchronized void setYcoord(int y) {
-        if (!MapsManager.getMap(this.map).getChunkByCoords(this.x, y, this.z).havePlayer(this)) {
-            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
-            this.y = y;
-            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
-        } else {
-            this.y = y;
-        }
-    }
-
-    @Override
-    public synchronized void setZcoord(int z) {
-        if (!MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, z).havePlayer(this)) {
-            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).removePlayer(this);
-            this.z = z;
-            MapsManager.getMap(this.map).getChunkByCoords(this.x, this.y, this.z).addPlayer(this);
-        } else {
-            this.z = z;
-        }
+    public void setCoord(float x, float y, float z) {
+    	synchronized(setCoord) {
+	    	Coord newCoord = new Coord(Math.round(x), Math.round(y), Math.round(z));
+	    	
+	    	boolean canSetCoord = true;
+	    	if(MapsManager.existMap(this.map.get())) {
+		        if (!MapsManager.getMap(this.map.get()).getChunkByPlayerCoords(newCoord).havePlayer(id.get())) {
+		            MapsManager.getMap(this.map.get()).getChunkByPlayerCoords(this.coord).removePlayer(id.get());
+		            this.coord.setCoord(newCoord);
+		            MapsManager.getMap(this.map.get()).getChunkByPlayerCoords(newCoord).addPlayer(this);
+		        } else {
+		        	canSetCoord = true;
+		        }
+	        } else {
+	        	canSetCoord = true;
+	        }
+	    	
+	    	if(canSetCoord) {
+	    		this.coord.setCoord(newCoord);
+	    		this.preciseCoord.setX(x);
+		        this.preciseCoord.setY(y);
+		        this.preciseCoord.setZ(z);
+	    	}
+    	}
     }
     
     @Override
-    public synchronized void setPosition(int map, int x, int y, int z){
+    public void setPosition(int map, float x, float y, float z){
     	this.setMap(map);
-    	this.setYcoord(y);
-    	this.setXcoord(x);
-    	this.setZcoord(z);
+    	this.setCoord(x,y,z);
+    }
+    
+    private void unsafeRemoveFromMap() {
+    	if (MapsManager.existMap(this.map.get())) {
+            MapsManager.getMap(this.map.get()).removePlayer(this.id.get());
+            MapsManager.getMap(this.map.get()).getChunkByPlayerCoords(this.coord).removePlayer(this.id.get());
+        }
+    }
+    
+    @Override
+	public void removeFromMap() {
+    	synchronized(setMapSync) {
+    		unsafeRemoveFromMap();
+		}
     }
 
     @Override
-    public synchronized void setName(String name) {
-        this.name = name;
+    public synchronized void setPublicId(String publicId) {
+        this.publicId = publicId;
     }
 
     @Override
-    public synchronized void setID(int id) {
-        this.id = id;
+    public void setID(int id) {
+        this.id.set(id);
+    }
+    
+    @Override
+	public void setTalkInLocal(boolean talk) {
+    	localTalk.set(talk);
+    }
+    
+    @Override
+	public void setTalkInGroup(boolean talk) {
+    	groupTalk.set(talk);
+    }
+    
+    @Override
+	public boolean canTalkInLocal() {
+    	return localTalk.get();
+    }
+    
+    @Override
+	public boolean canTalkInGroup() {
+    	return groupTalk.get();
+    }
+    
+	
+    @Override
+	public void setListenLocal(boolean talk) {
+    	localListen.set(talk);
+    }
+    
+    @Override
+	public void setListenGroup(boolean talk) {
+    	groupListen.set(talk);
+    }
+    
+    @Override
+	public boolean canListenLocal() {
+    	return localListen.get();
+    }
+    
+    @Override
+	public boolean canListenGroup() {
+    	return groupListen.get();
     }
 
+
     @Override
-    public synchronized void setGroupTalking(boolean isTalking) {
-        this.groupParticipate = isTalking;
+    public synchronized void setGroupId(int roomId) {
+    	int myRoomId = groupId.get();
+    	if(myRoomId >= 0) {
+    		if(RoomsManager.haveRoom(myRoomId)) {
+    			Room myRoom = RoomsManager.getRoom(myRoomId);
+    			myRoom.removePlayer(this.id.get());
+    		}
+    	}
+    	if(roomId >= 0) {
+    		if(RoomsManager.haveRoom(roomId)) {
+    			Room myRoom = RoomsManager.getRoom(roomId);
+    			myRoom.addPlayer(this.id.get(), this);
+    		}
+    	}
+        this.groupId.set(roomId);
     }
-
-
+    
     @Override
-    public synchronized void setGroup(int id) {
-        this.groupId = id;
+    public int getGroupId() {
+        return groupId.get();
     }
 
     @Override
     public synchronized PlayerState getState() {
-        return connectionState;
+        return PlayerState.valueOf(connectionState.name());
     }
 
     @Override
     public synchronized void setConnectionState(PlayerState state) {
         this.connectionState = state;
     }
-
+    
     @Override
-    public PlayerPacketAudio packetMyAudio(PlayerAudioType audioType, Integer number, byte[] audio){
-        PlayerPacketAudio packet = new PlayerPacketAudio(this.id, this.hashCode.getHash(), number, audio, audioType);
-        return packet;
+    public synchronized void setAddress(InetAddress address) {
+    	caddress.setAddress(address);
     }
-
+	
     @Override
-    public boolean sendPacketToMe(PlayerAudioType audioType, PlayerPacketAudio packet){
-    	if(groupParticipate && audioType == PlayerAudioType.TOGROUP) {
-    		
-    		return true;
-    	} else if(groupParticipate == false && audioType == PlayerAudioType.TOGERAL) {
-    		byte[] data = ProtocolToClient.createAudioInfo(packet.getID(), packet.getNumber(), packet.getAudio());
-    		PlayersSocket.send(hashCode.getAddress(), hashCode.getPort(), data);
-    		return true;
-    	}
-        return false;
+	public synchronized void setPort(int port) {
+		caddress.setPort(port);
+	}
+    
+    @Override
+    public synchronized InetAddress getAddress() {
+    	return caddress.getAddress();
+    }
+	
+    @Override
+	public synchronized int getPort() {
+		return caddress.getPort();
+	}
+    
+    @Override
+    public void setEnqueueAudioTimeCount(int count) {
+    	audioPacketNeededTime.set(count);
     }
     
     @Override
-    public boolean isValidNumberPacketAudio(int nb) {
-    	if(nb > packetNumber || (packetNumber == 255 && nb < 35)) {
-    		packetNumber = nb;
+    public int getEnqueueAudioTimeCount() {
+    	return audioPacketNeededTime.get();
+    }
+    
+    private boolean buildBufferAudioPacketFromQueue(Server.Builder fromServerBuilderOut, ConcurrentLinkedQueue<PlayerPacketAudio> audioQueue) {
+		if(audioQueue.isEmpty()) {
+			return false;
+		}
+		
+		PlayerPacketAudio packet = audioQueue.poll();
+		if(packet == null) {
+			return false;
+		}
+    	
+    	
+    	Server.Builder fromServerBuilder = Server.newBuilder();
+    	
+		if(packet.haveCoord()) {
+			fromServerBuilder.setCoordX(packet.getCoord().getX());
+			fromServerBuilder.setCoordY(packet.getCoord().getY());
+			fromServerBuilder.setCoordZ(packet.getCoord().getZ());
+		}
+		
+		int audioNumber = packet.getAudioNumber();
+		
+		if(!isValidNumberPacketAudio(audioNumber)) {
+			return false;
+		}
+		
+		Server fromServer = fromServerBuilder.setId(packet.getPlayer().getID())
+				.setAudio(ByteString.copyFrom(packet.getAudio()))
+				.setSampleTime(packet.getSampleTime())
+				.setAudioNum(audioNumber)
+				.setIsGroup(!packet.isLocalAudio())
+				.build();
+		byte[] sendBuffer= fromServer.toByteArray();
+		
+		//System.out.println("Audio " + audioNumber + " from tail");
+		
+		fromServerBuilderOut.addExtraClientMSG(ByteString.copyFrom(sendBuffer));
+		
+		buildBufferAudioPacketFromQueue(fromServerBuilderOut, audioQueue);
+		return true;
+    	
+    }
+    
+    ConcurrentLinkedQueue<PlayerPacketAudio> checkAudioPacketQueuePlayer(int id) {
+    	if(!audioPacketQueue.containsKey(id)) {
+    		audioPacketQueue.put(id, new ConcurrentLinkedQueue<>());
+    	}
+    	return audioPacketQueue.get(id);
+    }
+    
+    void removePlayerFromAudioQueue(int id) {
+    	if(audioPacketQueue.containsKey(id)) {
+    		audioPacketQueue.remove(id);
+    	}
+    }
+
+    @Override
+    public boolean sendAudioPacketToMe(PlayerPacketAudio packet){
+    	//System.out.println("AddAud " + packet.getAudioNumber() + " from tail");
+    	int playerId = packet.getPlayer().getID();
+    	ConcurrentLinkedQueue<PlayerPacketAudio> audioPlayerQueue = checkAudioPacketQueuePlayer(playerId);
+    	
+    	audioPlayerQueue.add(packet);
+    	
+    	boolean canSkipTime = false;
+    	Instant actualTime = Instant.now();
+    	synchronized(lastAudioSendTimeSync) {
+    		int comparisonResult = (int) actualTime.minusMillis(lastAudioSendTime.toEpochMilli()).toEpochMilli();
+    		if(comparisonResult >= audioPacketNeededTime.get()) {
+    			canSkipTime = true;
+    		}
+		}
+    	
+    	//if(apeTime >= audioPacketNeededTime.get() || canSkipTime) {
+    	if(canSkipTime) {
+    		Server.Builder fromServerBuilder = Server.newBuilder();
+    		boolean packPackets = buildBufferAudioPacketFromQueue(fromServerBuilder, audioPlayerQueue);
+    		removePlayerFromAudioQueue(playerId);
+    		if(!packPackets) {
+    			return false;
+    		}
+    		
+    		Instant currentTime = Instant.now();
+    		com.google.protobuf.Timestamp.Builder timebuilder = com.google.protobuf.Timestamp.newBuilder();
+    		timebuilder.setSeconds(currentTime.getEpochSecond());
+    		timebuilder.setNanos(currentTime.getNano());
+    		fromServerBuilder.setPacketTime(timebuilder.build());
+    		int packetNumb =  packetNumber.updateAndGet(n -> (n >= 256) ? 0 : n + 1);
+    		fromServerBuilder.setAudioNum(packetNumb);
+    		Server fromServer = fromServerBuilder.build();
+    		
+    		byte[] sendBuffer = fromServer.toByteArray();
+    		if(UDPServer.isNeedCryptograph()) {
+    			sendBuffer = encrypt(fromServer.toByteArray());
+    		}
+    		sender.send(getAddress(), getPort(), sendBuffer);
+    		//System.out.println("Sended " + fromServer.getExtraClientMSGCount() + " audio's");
+    		//System.out.println("NeedTime " + audioPacketNeededTime.get());
+    		synchronized(lastAudioSendTimeSync) {
+    			lastAudioSendTime = Instant.now();
+    		}
+    		return true;
+    	}
+    	
+    	return true;
+    	/*
+    	if(groupParticipate.get() && packet.getAudioType() == PlayerAudioType.TOGROUP) {
+    		
+    		return true;
+    	} else if(groupParticipate.get() == false && packet.getAudioType() == PlayerAudioType.TOGERAL) {
+    		Server.Builder fromServerBuilder = Server.newBuilder();
+    		
+			if(packet.haveCoord()) {
+    			fromServerBuilder.setCoordX(packet.getCoord().getX());
+    			fromServerBuilder.setCoordX(packet.getCoord().getX());
+    			fromServerBuilder.setCoordX(packet.getCoord().getX());
+			}
+    		
+    		int audioNumber = packet.getAudioNumber();
+    		
+    		if(!isValidNumberPacketAudio(audioNumber)) {
+    			return false;
+    		}
+    		
+    		Server fromServer = fromServerBuilder.setId(packet.getPlayer().getID())
+    				.setAudio(ByteString.copyFrom(packet.getAudio()))
+    				.setSampleTime(packet.getSampleTime())
+    				.setAudioNum(audioNumber)
+    				.build();
+    		byte[] sendBuffer = fromServer.toByteArray();
+    		
+    		if(UDPServer.isNeedCryptograph()) {
+    			sendBuffer = encrypt(fromServer.toByteArray());
+    		}
+    		
+    		sender.send(getAddress(), getPort(), sendBuffer);
+    		return true;
+    	}
+        return false;*/
+    }
+    
+    @Override
+    public boolean isBlockedUser(int id) {
+    	if(blockedUsers.containsKey(id)) {
     		return true;
     	}
     	return false;
     }
+	
+    @Override
+	public void blockUser(Player player) {
+    	if(!blockedUsers.containsKey(player.getID())) {
+    		blockedUsers.put(player.getID(), player);
+    	}
+    }
+    
+    @Override
+	public void unBlockUser(Player player) {
+    	if(blockedUsers.containsKey(player.getID())) {
+    		blockedUsers.remove(player.getID());
+    	}
+    }
+    
+    @Override
+    public boolean isValidNumberPacketAudio(int nb) {
+    	if(nb > 255 || nb < 0) {
+    		return false;
+    	}
+    	return true;
+    }
+
+	@Override
+	public int getScretID() {
+		return secret_id.get();
+	}
+
+	@Override
+	public void setScretID(int Secret_id) {
+		this.secret_id.set(Secret_id);
+		
+	}
+
+	@Override
+	public CoordFloat getPreciseCoord() {
+		synchronized(setCoord) {
+			return new CoordFloat(preciseCoord);
+		}
+	}
 
 }
